@@ -1,0 +1,3161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 任务拆解助手</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ===== CSS Variables ===== */
+:root {
+  --background: hsl(260 25% 97%);
+  --foreground: hsl(260 20% 15%);
+  --card: hsl(260 20% 99%);
+  --card-foreground: hsl(260 20% 15%);
+  --primary: hsl(265 70% 62%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(265 35% 92%);
+  --secondary-foreground: hsl(265 40% 38%);
+  --muted: hsl(260 15% 92%);
+  --muted-foreground: hsl(260 10% 48%);
+  --accent: hsl(265 30% 93%);
+  --accent-foreground: hsl(265 40% 38%);
+  --destructive: hsl(0 55% 55%);
+  --destructive-foreground: hsl(0 0% 100%);
+  --success: hsl(160 40% 42%);
+  --success-foreground: hsl(160 60% 96%);
+  --warning: hsl(38 85% 50%);
+  --warning-foreground: hsl(38 100% 96%);
+  --border: hsl(260 15% 89%);
+  --ring: hsl(265 70% 62%);
+  --radius: 0.5rem;
+  --font-sans: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ===== Reset & Base ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-sans);
+  background: linear-gradient(135deg, #f5f0fc 0%, #faf8fd 40%, #e8e0f5 100%);
+  color: var(--foreground);
+  min-height: 100dvh;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Decorative Glows ===== */
+.decorative-glow { pointer-events: none; position: fixed; border-radius: 50%; filter: blur(80px); z-index: 0; }
+.glow-1 { top: -128px; left: -128px; width: 384px; height: 384px; background: hsla(265, 70%, 62%, 0.08); }
+.glow-2 { bottom: -160px; right: -96px; width: 500px; height: 500px; background: hsla(265, 70%, 62%, 0.06); }
+.glow-3 { top: 33%; right: 25%; width: 256px; height: 256px; background: hsla(265, 30%, 93%, 0.15); }
+
+/* ===== Global Navbar ===== */
+.global-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: 56px;
+  background: #ffffff;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+.global-nav-inner {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Left: Logo */
+.nav-left { display: flex; align-items: center; gap: 10px; }
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
+.nav-logo-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary), rgba(139,92,246,0.7));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+}
+.nav-logo-icon svg { width: 18px; height: 18px; }
+.nav-logo-text {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+/* Center: Nav Links */
+.nav-center { display: flex; align-items: center; gap: 32px; }
+.nav-link {
+  font-size: 14px;
+  color: #4B5563;
+  text-decoration: none;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+  padding: 4px 0;
+  font-family: var(--font-sans);
+}
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary);
+  border-radius: 1px;
+  transition: width 0.2s ease;
+}
+.nav-link:hover { color: var(--primary); }
+.nav-link:hover::after { width: 100%; }
+
+/* Right: User */
+.nav-right { display: flex; align-items: center; gap: 10px; position: relative; }
+.nav-user-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.15s;
+  font-family: var(--font-sans);
+}
+.nav-user-btn:hover { background: rgba(139,92,246,0.06); }
+.nav-user-avatar {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), rgba(139,92,246,0.7));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.nav-user-name {
+  font-size: 14px;
+  color: #1F2937;
+  font-weight: 500;
+}
+.nav-user-chevron {
+  width: 14px; height: 14px;
+  color: #9CA3AF;
+  transition: transform 0.2s;
+}
+
+/* User Dropdown */
+.nav-user-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  min-width: 180px;
+  overflow: hidden;
+  z-index: 101;
+}
+.nav-user-dropdown.active { display: block; }
+.nav-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font-family: var(--font-sans);
+  transition: background 0.1s;
+}
+.nav-dropdown-item:hover { background: #F9FAFB; }
+.nav-dropdown-item svg { width: 16px; height: 16px; color: #6B7280; }
+.nav-dropdown-divider { height: 1px; background: #E5E7EB; margin: 4px 0; }
+
+/* ===== Layout ===== */
+.app-container {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  min-height: 100dvh;
+  padding-top: 80px; /* navbar height 56px + 24px */
+}
+
+/* Left: Chat Panel */
+.chat-col {
+  width: 370px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 80px;
+  align-self: flex-start;
+  height: calc(100dvh - 80px);
+  padding-bottom: 24px;
+}
+
+/* Right: Content Column */
+.content-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  padding-bottom: 24px;
+}
+
+/* ===== Card Base ===== */
+.card {
+  background: rgba(255,255,255,0.75);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(139,92,246,0.15);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(139,92,246,0.1);
+  overflow: hidden;
+}
+
+/* ===== Chat Panel ===== */
+.chat-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-header {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(139,92,246,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.chat-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, hsl(265,70%,62%), hsl(265,70%,55%));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(139,92,246,0.2);
+  position: relative;
+}
+
+.chat-avatar svg { width: 18px; height: 18px; color: white; }
+
+.chat-avatar-dot {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid white;
+  background: hsl(160,40%,42%);
+}
+
+.chat-header-info h3 { font-size: 14px; font-weight: 600; }
+.chat-header-info p { font-size: 11px; color: var(--muted-foreground); display: flex; align-items: center; gap: 4px; }
+.chat-header-info p .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--success); display: inline-block; }
+.chat-greeting {
+  font-size: 12px;
+  color: #f59e0b;
+  margin-top: 2px;
+  font-weight: 400;
+}
+
+.chat-header-actions { display: flex; align-items: center; gap: 4px; }
+.icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  transition: background 0.15s;
+}
+.icon-btn:hover { background: rgba(139,92,246,0.1); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Message Bubble */
+.msg-row { display: flex; gap: 8px; max-width: 88%; animation: fadeInUp 0.3s ease; }
+.msg-row.user { margin-left: auto; flex-direction: row-reverse; }
+@keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+.msg-avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+}
+.msg-avatar.ai { background: rgba(139,92,246,0.1); color: var(--primary); }
+.msg-avatar.user { background: linear-gradient(135deg, var(--primary), rgba(139,92,246,0.7)); color: white; }
+.msg-avatar svg { width: 14px; height: 14px; }
+
+.msg-bubble-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.msg-bubble {
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.msg-bubble.ai {
+  background: rgba(255,255,255,0.8);
+  border: 1px solid rgba(139,92,246,0.1);
+  border-top-left-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.msg-bubble.user {
+  background: rgba(139,92,246,0.1);
+  border-top-right-radius: 4px;
+}
+.msg-time { font-size: 10px; color: rgba(139,92,246,0.3); padding: 0 4px; }
+.msg-time.user { text-align: right; }
+
+/* Typing Indicator */
+.typing-dots { display: flex; gap: 4px; padding: 4px 0; }
+.typing-dots span {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: rgba(139,92,246,0.4);
+  animation: typingBounce 1.2s infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typingBounce { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+
+/* Chat Input */
+.chat-input-area {
+  flex-shrink: 0;
+  padding: 12px;
+  border-top: 1px solid rgba(139,92,246,0.1);
+}
+
+.chat-input-row { display: flex; gap: 8px; align-items: flex-end; }
+.chat-input-row textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 100px;
+  resize: none;
+  border: 1px solid rgba(139,92,246,0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  background: rgba(255,255,255,0.6);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.chat-input-row textarea:focus { border-color: rgba(139,92,246,0.3); }
+.send-btn {
+  width: 36px; height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: var(--primary);
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(139,92,246,0.2);
+  transition: opacity 0.15s;
+}
+.send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.send-btn svg { width: 16px; height: 16px; }
+
+/* Voice Input Button */
+.voice-btn {
+  width: 36px; height: 36px;
+  border-radius: 12px;
+  border: none;
+  background: #6366F1;
+  color: white;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: transform 0.2s;
+  box-shadow: 0 2px 8px rgba(99,102,241,0.2);
+}
+.voice-btn:hover { transform: scale(1.1); }
+.voice-btn:active { transform: scale(0.95); }
+.voice-btn svg { width: 16px; height: 16px; }
+.voice-btn .voice-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1F2937;
+  color: white;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-family: var(--font-sans);
+}
+.voice-btn .voice-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-top-color: #1F2937;
+}
+.voice-btn:hover .voice-tooltip { opacity: 1; }
+.voice-btn.recording { background: #ef4444; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+
+/* ===== Today Focus Panel ===== */
+.today-panel { display: flex; flex-direction: column; }
+.today-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  flex-shrink: 0;
+}
+.today-header-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.today-icon {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  background: rgba(139,92,246,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.today-icon svg { width: 14px; height: 14px; color: var(--primary); }
+.today-header h2 { font-size: 14px; font-weight: 600; white-space: nowrap; }
+
+.today-header-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.greeting { font-size: 12px; color: var(--muted-foreground); }
+.user-avatar-mini {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), rgba(139,92,246,0.7));
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Stats Row */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 20px 12px;
+  flex-shrink: 0;
+}
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  border: 1px solid;
+  transition: all 0.2s;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.stat-card:hover { background: #EEF2FF; }
+.stat-card svg { width: 14px; height: 14px; flex-shrink: 0; }
+.stat-card .stat-value { font-size: 18px; font-weight: 700; line-height: 1.2; }
+.stat-card .stat-label { font-size: 10px; color: var(--muted-foreground); line-height: 1.2; }
+
+.stat-high { background: #FEF3C7; border-color: #FDE68A; }
+.stat-high svg { color: #d97706; }
+.stat-overdue { background: #FEE2E2; border-color: #FECACA; }
+.stat-overdue svg { color: var(--destructive); }
+.stat-done { background: #D1FAE5; border-color: #A7F3D0; }
+.stat-done svg { color: var(--success); }
+.stat-pending { background: #E0E7FF; border-color: #C7D2FE; }
+.stat-pending svg { color: rgba(139,92,246,0.7); }
+
+/* Today bottom hint */
+.today-hint {
+  padding: 0 20px 12px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.today-hint svg { width: 12px; height: 12px; color: rgba(139,92,246,0.6); }
+.today-hint strong { color: var(--foreground); font-weight: 600; }
+
+/* ===== Project & Calendar Panel ===== */
+.pc-panel { display: flex; flex-direction: column; min-height: 0; }
+.pc-gradient-bar { height: 4px; flex-shrink: 0; background: linear-gradient(to right, var(--primary), rgba(139,92,246,0.5), rgba(139,92,246,0.15)); }
+.pc-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  padding: 12px 16px 8px;
+  flex-shrink: 0;
+}
+.pc-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  transition: all 0.2s;
+  font-family: var(--font-sans);
+}
+.pc-tab.active { background: rgba(139,92,246,0.1); color: var(--primary); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.pc-tab:hover:not(.active) { color: var(--foreground); background: rgba(0,0,0,0.03); }
+.pc-tab svg { width: 16px; height: 16px; }
+
+.pc-content { flex: 1; overflow-y: auto; min-height: 200px; }
+
+/* ===== Project Cards ===== */
+.project-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 16px; }
+@media (min-width: 1280px) { .project-grid { grid-template-columns: 1fr 1fr; } }
+.project-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.6);
+  padding: 16px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.project-card:hover { box-shadow: 0 4px 12px rgba(139,92,246,0.05); transform: translateY(-1px); }
+.project-card .color-bar {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  border-radius: 12px 0 0 12px;
+}
+.project-card .card-inner { padding-left: 8px; }
+.project-card .card-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.project-card .card-title { font-size: 14px; font-weight: 600; }
+.project-card .card-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.badge-progress { background: rgba(139,92,246,0.1); color: var(--primary); border-color: rgba(139,92,246,0.2); }
+.badge-notstarted { background: var(--muted); color: var(--muted-foreground); border-color: var(--border); }
+.badge-done { background: rgba(61,155,108,0.1); color: var(--success); border-color: rgba(61,155,108,0.2); }
+
+.project-card .progress-section { margin: 12px 0 8px; }
+.project-card .progress-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
+.project-card .progress-label span:first-child { color: var(--muted-foreground); }
+.project-card .progress-label span:last-child { font-weight: 600; }
+.project-card .progress-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(0,0,0,0.06);
+  overflow: hidden;
+}
+.project-card .progress-bar .progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+.project-card .card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.project-card .card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.project-card .card-meta svg { width: 12px; height: 12px; }
+.project-card .card-meta .risk-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+.project-card .card-next {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(139,92,246,0.8);
+  padding-top: 6px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(0,0,0,0.04);
+}
+.project-card .card-next svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+/* ===== Calendar View ===== */
+.cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  flex-shrink: 0;
+}
+.cal-view-toggle { display: flex; gap: 1px; background: rgba(0,0,0,0.04); border-radius: 8px; padding: 2px; }
+.cal-view-btn {
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-family: var(--font-sans);
+  transition: all 0.15s;
+}
+.cal-view-btn.active { background: white; color: var(--foreground); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.cal-nav { display: flex; align-items: center; gap: 4px; }
+.cal-nav-btn {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted-foreground);
+  transition: background 0.15s;
+}
+.cal-nav-btn:hover { background: rgba(139,92,246,0.1); }
+.cal-nav-btn svg { width: 14px; height: 14px; }
+.cal-nav-label { font-size: 12px; font-weight: 500; min-width: 100px; text-align: center; }
+
+/* Week View */
+.week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; padding: 12px; }
+.week-day-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px;
+  border-radius: 8px;
+  text-align: center;
+}
+.week-day-header.today { background: rgba(139,92,246,0.1); }
+.week-day-header .wd-label { font-size: 10px; color: var(--muted-foreground); }
+.week-day-header.today .wd-label { color: var(--primary); font-weight: 600; }
+.week-day-header .wd-date { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.week-day-header.today .wd-date { color: var(--primary); }
+.week-day-header .wd-tag {
+  font-size: 8px;
+  font-weight: 600;
+  color: white;
+  background: var(--primary);
+  border-radius: 10px;
+  padding: 0 4px;
+  margin-top: 2px;
+}
+
+.week-day-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 140px;
+  border-radius: 8px;
+  padding: 4px;
+  background: rgba(0,0,0,0.02);
+}
+.week-day-col.today { background: rgba(139,92,246,0.04); }
+
+.week-task {
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 10px;
+  line-height: 1.3;
+  cursor: default;
+  transition: filter 0.15s;
+}
+.week-task:hover { filter: brightness(0.95); }
+.week-task.done { opacity: 0.5; }
+.week-task .wt-title { font-weight: 500; }
+.week-task .wt-title.done { text-decoration: line-through; }
+.week-task .wt-time { color: var(--muted-foreground); margin-top: 2px; }
+
+/* Week Task Tooltip */
+.week-task-tooltip {
+  position: fixed;
+  z-index: 500;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  padding: 12px 16px;
+  max-width: 260px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.week-task-tooltip.active { opacity: 1; }
+.week-task-tooltip .tt-title { font-size: 14px; font-weight: 700; color: #1F2937; margin-bottom: 6px; }
+.week-task-tooltip .tt-row { font-size: 12px; color: #6B7280; margin-bottom: 2px; }
+
+/* Month View */
+.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; padding: 12px; }
+.month-dow { text-align: center; font-size: 10px; font-weight: 500; color: var(--muted-foreground); padding: 4px 0; }
+.month-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 8px;
+  padding: 6px 0;
+  min-height: 48px;
+  cursor: default;
+  transition: background 0.15s;
+}
+.month-day.other-month { opacity: 0.3; }
+.month-day.today { background: rgba(139,92,246,0.1); box-shadow: 0 0 0 1px rgba(139,92,246,0.2); }
+.month-day .md-date { font-size: 11px; }
+.month-day.today .md-date { color: var(--primary); font-weight: 700; }
+.month-day .md-dots { display: flex; gap: 2px; margin-top: 6px; }
+.month-day .md-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Calendar Legend */
+.cal-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  flex-shrink: 0;
+}
+.cal-legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--muted-foreground); }
+.cal-legend-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ===== Mobile Fab ===== */
+.mobile-fab {
+  display: none;
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 40;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(139,92,246,0.3);
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s;
+}
+.mobile-fab:hover { transform: scale(1.05); }
+.mobile-fab:active { transform: scale(0.95); }
+.mobile-fab svg { width: 24px; height: 24px; }
+
+/* ===== Mobile Chat Sheet ===== */
+.mobile-chat-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+}
+.mobile-chat-overlay.active { display: block; }
+.mobile-chat-sheet {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 100%;
+  max-width: 420px;
+  z-index: 51;
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+.mobile-chat-sheet.active { transform: translateX(0); }
+.mobile-chat-sheet .chat-panel {
+  margin: 0;
+  border-radius: 0;
+  height: 100dvh;
+}
+.mobile-chat-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 52;
+}
+
+/* ===== Empty State ===== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  text-align: center;
+  color: var(--muted-foreground);
+}
+.empty-state svg { width: 32px; height: 32px; opacity: 0.3; margin-bottom: 8px; }
+.empty-state p { font-size: 14px; }
+.empty-state .sub { font-size: 12px; margin-top: 4px; }
+
+/* ===== Responsive ===== */
+@media (max-width: 1023px) {
+  .app-container { padding: 16px; }
+  .chat-col { display: none; }
+  .content-col { padding-top: 16px; padding-bottom: 80px; }
+  .mobile-fab { display: flex; }
+  .stats-row { grid-template-columns: repeat(2, 1fr); }
+  .greeting { display: none; }
+}
+
+/* ===== Misc ===== */
+.text-truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== Profile Modal ===== */
+.pf-editable:hover { background: #F3F4F6; }
+.pf-mbti-btn { transition: all 0.15s; }
+.pf-mbti-btn:hover { background: white !important; }
+.pf-row { transition: background 0.1s; }
+.pf-row:hover { background: #F9FAFB; border-radius: 8px; padding: 2px 8px; margin: -2px -8px; }
+
+@keyframes toastIn { from { opacity:0; transform:translateX(-50%) translateY(12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+
+@keyframes domainCardFlash { 0%,100% { box-shadow: 0 0 0 rgba(139,92,246,0); border-color: rgba(139,92,246,0.15); } 50% { box-shadow: 0 0 16px rgba(139,92,246,0.4); border-color: #8B5CF6; } }
+@keyframes badgePopIn { from { opacity:0; transform:scale(0.5); } to { opacity:1; transform:scale(1); } }
+@keyframes badgeFadeOut { from { opacity:1; } to { opacity:0; } }
+@keyframes numberBounce { 0% { transform:scale(1); } 30% { transform:scale(1.4); } 60% { transform:scale(0.9); } 100% { transform:scale(1); } }
+</style>
+</head>
+<body>
+
+<!-- ===== Global Navbar ===== -->
+<nav class="global-nav">
+  <div class="global-nav-inner">
+    <!-- Left: Logo -->
+    <div class="nav-left">
+      <a class="nav-logo" href="#" onclick="event.preventDefault(); scrollToTop();">
+        <img src="https://prd-tc-intl-cdn.codebanana.com/cb-user-uploads/35933c84-d001-4aa5-b7a8-052279e7bf19/LOGO2.jpg" alt="拾瞳" style="width:32px;height:32px;border-radius:8px;">
+        <span class="nav-logo-text">拾瞳</span>
+      </a>
+    </div>
+
+    <!-- Center: Nav Links -->
+    <div class="nav-center">
+      <a class="nav-link" href="#" onclick="event.preventDefault();">品牌故事</a>
+      <a class="nav-link" href="#" onclick="event.preventDefault();">订阅方案</a>
+      <a class="nav-link" href="#" onclick="event.preventDefault();">联系我们</a>
+    </div>
+
+    <!-- Right: User -->
+    <div class="nav-right" id="navUserArea">
+      <button class="nav-user-btn" onclick="toggleUserDropdown(event)">
+        <div class="nav-user-avatar" style="background:linear-gradient(135deg,#f59e0b,#f97316);">🌻</div>
+        <span class="nav-greeting" id="navGreeting" style="font-size:14px;color:#6B7280;margin-right:2px;">晚上好，</span>
+        <span class="nav-user-name" style="font-weight:600;">Summer</span>
+        <svg class="nav-user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="nav-user-dropdown" id="navUserDropdown">
+        <button class="nav-dropdown-item" onclick="openProfile();closeUserDropdown();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>
+          个人画像
+        </button>
+        <button class="nav-dropdown-item" onclick="alert('AI 偏好设置');closeUserDropdown();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          AI 偏好设置
+        </button>
+        <div class="nav-dropdown-divider"></div>
+        <button class="nav-dropdown-item" onclick="alert('演示版本');closeUserDropdown();">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+          退出登录
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Decorative Glows -->
+<div class="decorative-glow glow-1"></div>
+<div class="decorative-glow glow-2"></div>
+<div class="decorative-glow glow-3"></div>
+
+<!-- App Container -->
+<div class="app-container">
+
+  <!-- ===== LEFT: Chat Panel (Desktop) ===== -->
+  <div class="chat-col">
+    <div class="card chat-panel" id="chatPanel">
+      <div class="chat-header">
+        <div class="chat-header-left">
+          <div class="chat-avatar">
+            <img src="https://prd-tc-intl-cdn.codebanana.com/cb-user-uploads/35933c84-d001-4aa5-b7a8-052279e7bf19/LOGO2.jpg" alt="拾瞳" style="width:28px;height:28px;border-radius:50%;">
+            <div class="chat-avatar-dot"></div>
+          </div>
+          <div class="chat-header-info">
+            <h3>任务拆解助手</h3>
+            <p><span class="dot"></span>在线</p>
+            <div class="chat-greeting" id="chatGreeting">☀️ 早上好，今天的关键项目是...</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <!-- Demo messages populated by JS -->
+      </div>
+
+      <div class="chat-input-area">
+        <div class="chat-input-row">
+          <textarea id="chatInput" placeholder="输入你的任务，我来帮你拆解和排期..." rows="1" onkeydown="handleChatKeydown(event)"></textarea>
+          <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceInput(event)" title="语音录入">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            <span class="voice-tooltip">语音录入</span>
+          </button>
+          <button class="send-btn" id="sendBtn" disabled onclick="sendMessage()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RIGHT: Content ===== -->
+  <div class="content-col" id="contentCol">
+
+    <!-- Today Focus Panel -->
+    <div class="card today-panel" style="flex-shrink:0; display:flex; flex-direction:row; gap:16px; align-items:stretch;" id="todayPanel">
+      <!-- Left: Donut Column -->
+      <div class="today-left" style="flex:0 0 150px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:12px 0 12px 16px;">
+        <div style="width:140px;height:140px;">
+          <canvas id="donutChart" width="140" height="140" style="display:block;"></canvas>
+        </div>
+        <div style="margin-top:8px;width:150px;text-align:center;line-height:1.4;" id="donutLegend"></div>
+      </div>
+
+      <!-- Right: Content Column -->
+      <div class="today-right" style="flex:1; min-width:0; padding:0 16px 0 0;">
+        <div class="today-header" style="padding:16px 0 12px;">
+          <div class="today-header-left">
+            <div class="today-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
+            <h2 id="todayTitle">今日焦点 · 7月19日 周日</h2>
+          </div>
+        </div>
+
+        <!-- Today Brief Card -->
+        <div id="briefCard" style="background:linear-gradient(135deg,#4F46E5,#7C3AED);border-radius:12px;padding:12px 16px;margin:0 0 12px 0;color:#fff;cursor:pointer;box-shadow:0 2px 12px rgba(79,70,229,0.25);" onclick="openBriefModal()">
+          <div style="font-size:14px;font-weight:600;margin-bottom:2px;" id="briefLine1">🔥 加载中...</div>
+          <div style="font-size:13px;opacity:0.9;margin-bottom:2px;" id="briefLine2">🌙 加载中...</div>
+          <div style="font-size:12px;opacity:0.8;" id="briefLine3">🎾 加载中...</div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="stats-row" style="padding:0;margin-bottom:4px;">
+          <button class="stat-card stat-high" onclick="openStatModal('highRisk')" style="cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></svg>
+            <div>
+              <div class="stat-value" id="statHighRisk">1</div>
+              <div class="stat-label">高风险</div>
+            </div>
+          </button>
+          <button class="stat-card stat-overdue" onclick="openStatModal('overdue')" style="cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+            <div>
+              <div class="stat-value" id="statOverdue">1</div>
+              <div class="stat-label">已逾期</div>
+            </div>
+          </button>
+          <button class="stat-card stat-done" onclick="openStatModal('completed')" style="cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            <div>
+              <div class="stat-value" id="statCompleted">4</div>
+              <div class="stat-label">已完成</div>
+            </div>
+          </button>
+          <button class="stat-card stat-pending" onclick="openStatModal('pending')" style="cursor:pointer;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+            <div>
+              <div class="stat-value" id="statPending">18</div>
+              <div class="stat-label">待办</div>
+            </div>
+          </button>
+        </div>
+
+        <!-- Hint -->
+        <div class="today-hint" id="todayHint" style="padding:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+          今日有 <strong id="pendingCount">18</strong> 个任务待处理，预计 <strong id="pendingHours">9</strong>h
+        </div>
+      </div>
+    </div>
+
+    <!-- Project & Calendar Panel -->
+    <div class="card pc-panel" style="flex:1; min-height:400px;" id="pcPanel">
+      <div class="pc-gradient-bar"></div>
+      <div class="pc-tabs">
+        <button class="pc-tab active" id="tabProjects" onclick="switchPCTab('projects')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          项目
+        </button>
+        <button class="pc-tab" id="tabCalendar" onclick="switchPCTab('calendar')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+          日历
+        </button>
+      </div>
+
+      <!-- Projects View -->
+      <div class="pc-content" id="projectsView">
+        <div class="project-grid" id="projectGrid"></div>
+      </div>
+
+      <!-- Calendar View (hidden by default) -->
+      <div class="pc-content" id="calendarView" style="display:none; flex-direction:column;">
+        <div class="cal-header">
+          <div class="cal-view-toggle">
+            <button class="cal-view-btn active" id="calWeekBtn" onclick="setCalendarView('week')">周视图</button>
+            <button class="cal-view-btn" id="calMonthBtn" onclick="setCalendarView('month')">月视图</button>
+          </div>
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="calNavigate(-1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <span class="cal-nav-label" id="calNavLabel">7月19日 - 7月25日</span>
+            <button class="cal-nav-btn" onclick="calNavigate(1)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></button>
+          </div>
+        </div>
+        <div id="weekCalendar" style="flex:1; overflow-y:auto;"></div>
+        <div id="monthCalendar" style="display:none; flex:1; overflow-y:auto;"></div>
+        <div class="cal-legend" id="calLegend"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Mobile Floating Action Button -->
+<button class="mobile-fab" onclick="openMobileChat()" aria-label="打开 AI 对话">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+</button>
+
+<!-- Mobile Chat Overlay -->
+<div class="mobile-chat-overlay" id="mobileChatOverlay" onclick="closeMobileChat()"></div>
+<div class="mobile-chat-sheet" id="mobileChatSheet">
+  <div class="card chat-panel" style="border-radius:0; height:100dvh; margin:0;">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-avatar">
+          <img src="https://prd-tc-intl-cdn.codebanana.com/cb-user-uploads/35933c84-d001-4aa5-b7a8-052279e7bf19/LOGO2.jpg" alt="拾瞳" style="width:28px;height:28px;border-radius:50%;">
+          <div class="chat-avatar-dot"></div>
+        </div>
+        <div class="chat-header-info">
+          <h3>任务拆解助手</h3>
+          <p><span class="dot"></span>在线</p>
+        </div>
+      </div>
+      <button class="icon-btn mobile-chat-close" onclick="closeMobileChat()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="chat-messages" id="mobileChatMessages"></div>
+    <div class="chat-input-area">
+      <div class="chat-input-row">
+        <textarea id="mobileChatInput" placeholder="输入你的任务，我来帮你拆解和排期..." rows="1" onkeydown="handleMobileChatKeydown(event)"></textarea>
+        <button class="voice-btn" id="mobileVoiceBtn" onclick="toggleVoiceInput(event)" title="语音录入">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+          <span class="voice-tooltip">语音录入</span>
+        </button>
+        <button class="send-btn" id="mobileSendBtn" disabled onclick="sendMobileMessage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ===== DATA ===== */
+
+const DOMAIN_COLORS = { '创业':'#8B5CF6', '自媒体':'#EC4899', '咨询':'#F59E0B', '课程':'#10B981', '生活':'#3B82F6' };
+
+function getDomainColor(parentTaskId) {
+  const task = tasks.find(t=>t.id===parentTaskId);
+  const domain = task ? (task.domain||'其他') : '其他';
+  return DOMAIN_COLORS[domain] || '#8B5CF6';
+}
+const PROJECT_DEADLINES = { mock_task_1: '2026-07-25', mock_task_2: '2026-07-30', mock_task_3: '2026-07-28', mock_task_4: '2026-08-05', mock_task_5: '2026-07-28', mock_task_6: '2026-08-15', mock_task_7: '2026-07-30' };
+
+const SEED_TASK_IDS = ['mock_task_1','mock_task_2','mock_task_3','mock_task_4','mock_task_5','mock_task_6','mock_task_7'];
+
+function getSeedTasks() {
+  return [
+  {
+    id: 'mock_task_1', title: '策划并发布一条爆款短视频', domain: '自媒体',
+    description: '打造一条高质量短视频，冲击10万+播放量，提升个人品牌影响力',
+    stage: 'key_achieved',
+    subtasks: [
+      { id:'sub_1_0', taskId:'mock_task_1', title:'选题脑暴与竞品分析', priority:'P0', estimatedMinutes:90, riskLevel:'low', riskNote:'', completed:true },
+      { id:'sub_1_1', taskId:'mock_task_1', title:'脚本撰写', priority:'P0', estimatedMinutes:120, riskLevel:'low', riskNote:'', completed:true },
+      { id:'sub_1_2', taskId:'mock_task_1', title:'拍摄准备与场地布置', priority:'P1', estimatedMinutes:60, riskLevel:'medium', riskNote:'拍摄日可能下雨影响光线', completed:false },
+      { id:'sub_1_3', taskId:'mock_task_1', title:'视频拍摄', priority:'P0', estimatedMinutes:180, riskLevel:'medium', riskNote:'设备电量需提前检查', completed:false },
+      { id:'sub_1_4', taskId:'mock_task_1', title:'剪辑与字幕', priority:'P0', estimatedMinutes:240, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_1_5', taskId:'mock_task_1', title:'封面设计与标题优化', priority:'P1', estimatedMinutes:60, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_1_6', taskId:'mock_task_1', title:'发布与评论区运营', priority:'P2', estimatedMinutes:45, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_1_7', taskId:'mock_task_1', title:'数据复盘', priority:'P3', estimatedMinutes:30, riskLevel:'low', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-14T08:00:00.000Z', projectColor: '#8B5CF6'
+  },
+  {
+    id: 'mock_task_2', title: '筹备下周直播带货专场', domain: '自媒体',
+    description: '筹备一场2小时直播带货，目标销售额5万元，粉丝互动率提升20%',
+    stage: 'started',
+    subtasks: [
+      { id:'sub_2_0', taskId:'mock_task_2', title:'选品与供应链确认', priority:'P0', estimatedMinutes:120, riskLevel:'high', riskNote:'选品库存不足风险', completed:true },
+      { id:'sub_2_1', taskId:'mock_task_2', title:'直播脚本与话术准备', priority:'P0', estimatedMinutes:150, riskLevel:'medium', riskNote:'Deadline紧迫', completed:false },
+      { id:'sub_2_2', taskId:'mock_task_2', title:'直播间场景搭建', priority:'P1', estimatedMinutes:90, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_2_3', taskId:'mock_task_2', title:'预热短视频发布', priority:'P1', estimatedMinutes:120, riskLevel:'medium', riskNote:'需提前3天发布预热', completed:false },
+      { id:'sub_2_4', taskId:'mock_task_2', title:'直播彩排', priority:'P1', estimatedMinutes:60, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_2_5', taskId:'mock_task_2', title:'正式直播执行', priority:'P0', estimatedMinutes:120, riskLevel:'high', riskNote:'网络稳定性需保障', completed:false },
+      { id:'sub_2_6', taskId:'mock_task_2', title:'售后与发货跟进', priority:'P2', estimatedMinutes:90, riskLevel:'medium', riskNote:'供应链发货时效', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-15T10:30:00.000Z', projectColor: '#EC4899'
+  },
+  {
+    id: 'mock_task_3', title: '撰写并发布公众号深度长文', domain: '自媒体',
+    description: '撰写一篇3000字深度干货文章，目标阅读量5000+，涨粉200',
+    stage: 'started',
+    subtasks: [
+      { id:'sub_3_0', taskId:'mock_task_3', title:'选题调研与大纲梳理', priority:'P0', estimatedMinutes:90, riskLevel:'low', riskNote:'', completed:true },
+      { id:'sub_3_1', taskId:'mock_task_3', title:'素材收集与专家访谈', priority:'P1', estimatedMinutes:120, riskLevel:'medium', riskNote:'专家档期难约', completed:false },
+      { id:'sub_3_2', taskId:'mock_task_3', title:'正文撰写', priority:'P0', estimatedMinutes:240, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_3_3', taskId:'mock_task_3', title:'排版与配图制作', priority:'P1', estimatedMinutes:90, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_3_4', taskId:'mock_task_3', title:'多轮校对', priority:'P2', estimatedMinutes:45, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_3_5', taskId:'mock_task_3', title:'定时发布与社群转发', priority:'P2', estimatedMinutes:30, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_3_6', taskId:'mock_task_3', title:'阅读数据分析', priority:'P3', estimatedMinutes:30, riskLevel:'low', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-16T14:00:00.000Z', projectColor: '#6366F1'
+  },
+  {
+    id: 'mock_task_4', title: '种子轮融资商业计划书撰写', domain: '创业',
+    description: '完成种子轮融资BP，目标融资金额500万',
+    stage: 'started',
+    subtasks: [
+      { id:'sub_4_0', taskId:'mock_task_4', title:'市场调研与竞品分析', priority:'P0', estimatedMinutes:120, riskLevel:'high', riskNote:'数据准确度要求高', completed:true },
+      { id:'sub_4_1', taskId:'mock_task_4', title:'财务模型搭建', priority:'P0', estimatedMinutes:180, riskLevel:'high', riskNote:'需与财务顾问确认', completed:true },
+      { id:'sub_4_2', taskId:'mock_task_4', title:'BP 撰写与排版', priority:'P0', estimatedMinutes:240, riskLevel:'medium', riskNote:'', completed:false },
+      { id:'sub_4_3', taskId:'mock_task_4', title:'投资人路演排练', priority:'P1', estimatedMinutes:90, riskLevel:'medium', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-10T09:00:00.000Z', projectColor: '#EF4444'
+  },
+  {
+    id: 'mock_task_5', title: '某企业 AI 转型咨询方案', domain: '咨询',
+    description: '为某传统企业提供 AI 转型咨询服务',
+    stage: 'started',
+    subtasks: [
+      { id:'sub_5_0', taskId:'mock_task_5', title:'企业现状调研与访谈', priority:'P0', estimatedMinutes:180, riskLevel:'medium', riskNote:'', completed:true },
+      { id:'sub_5_1', taskId:'mock_task_5', title:'AI 转型方案撰写', priority:'P0', estimatedMinutes:240, riskLevel:'medium', riskNote:'需结合行业最佳实践', completed:true },
+      { id:'sub_5_2', taskId:'mock_task_5', title:'方案汇报与修订', priority:'P1', estimatedMinutes:120, riskLevel:'low', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-12T11:00:00.000Z', projectColor: '#F59E0B'
+  },
+  {
+    id: 'mock_task_6', title: 'AI 应用实战课程开发', domain: '课程',
+    description: '开发一门面向初学者的 AI 应用实战课程',
+    stage: 'started',
+    subtasks: [
+      { id:'sub_6_0', taskId:'mock_task_6', title:'课程大纲设计', priority:'P0', estimatedMinutes:120, riskLevel:'low', riskNote:'', completed:true },
+      { id:'sub_6_1', taskId:'mock_task_6', title:'课件与案例制作', priority:'P0', estimatedMinutes:240, riskLevel:'medium', riskNote:'案例有效性需验证', completed:false },
+      { id:'sub_6_2', taskId:'mock_task_6', title:'视频录制与剪辑', priority:'P1', estimatedMinutes:180, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_6_3', taskId:'mock_task_6', title:'上线与推广', priority:'P1', estimatedMinutes:90, riskLevel:'low', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-16T08:00:00.000Z', projectColor: '#10B981'
+  },
+  {
+    id: 'mock_task_7', title: '三季度旅行计划制定', domain: '生活',
+    description: '规划三季度旅行方案',
+    stage: 'started',
+    subtasks: [
+      { id:'sub_7_0', taskId:'mock_task_7', title:'目的地筛选与预算', priority:'P2', estimatedMinutes:60, riskLevel:'low', riskNote:'', completed:true },
+      { id:'sub_7_1', taskId:'mock_task_7', title:'机票酒店预订', priority:'P2', estimatedMinutes:45, riskLevel:'low', riskNote:'', completed:false },
+      { id:'sub_7_2', taskId:'mock_task_7', title:'行程规划与攻略', priority:'P3', estimatedMinutes:60, riskLevel:'low', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: '2026-07-17T15:00:00.000Z', projectColor: '#8B5CF6'
+  }
+];
+}
+
+const WEEKDAYS_FULL = ['周日','周一','周二','周三','周四','周五','周六'];
+const WEEKDAYS_SHORT = ['一','二','三','四','五','六','日'];
+
+// Mock Tasks — initialized from seed data
+let tasks = getSeedTasks();
+
+// Calendar schedule data
+const MOCK_CALENDAR_SCHEDULE = [
+  // 7/18（周六）
+  { date:'2026-07-18', dayLabel:'周六', items:[
+    { id:'cs1', subtaskId:'sub_1_0', parentTaskId:'mock_task_1', title:'选题脑暴与竞品分析', priority:'P0', estimatedMinutes:90, riskLevel:'low', completed:true },
+    { id:'cs2', subtaskId:'sub_3_0', parentTaskId:'mock_task_3', title:'选题调研与大纲梳理', priority:'P0', estimatedMinutes:90, riskLevel:'low', completed:true },
+  ]},
+  // 7/19（周日）
+  { date:'2026-07-19', dayLabel:'周日', items:[
+    { id:'cs3', subtaskId:'sub_1_1', parentTaskId:'mock_task_1', title:'脚本撰写', priority:'P0', estimatedMinutes:120, riskLevel:'low', completed:false },
+  ]},
+  // 7/20（周一）
+  { date:'2026-07-20', dayLabel:'周一', items:[
+    { id:'cs4', subtaskId:'sub_1_2', parentTaskId:'mock_task_1', title:'拍摄准备与场地布置', priority:'P1', estimatedMinutes:60, riskLevel:'medium', completed:false, riskNote:'提前检查设备电量与场地预约' },
+    { id:'cs5', subtaskId:'sub_2_0', parentTaskId:'mock_task_2', title:'选品与供应链确认', priority:'P0', estimatedMinutes:120, riskLevel:'high', completed:false, riskNote:'库存不足风险，备选供应商待确认' },
+    { id:'cs20', subtaskId:'sub_4_0', parentTaskId:'mock_task_4', title:'市场调研与竞品分析', priority:'P0', estimatedMinutes:120, riskLevel:'high', completed:false, riskNote:'数据准确度要求高' },
+    { id:'cs21', subtaskId:'sub_5_0', parentTaskId:'mock_task_5', title:'企业现状调研与访谈', priority:'P0', estimatedMinutes:180, riskLevel:'medium', completed:false },
+    { id:'cs22', subtaskId:'sub_6_0', parentTaskId:'mock_task_6', title:'课程大纲设计', priority:'P0', estimatedMinutes:120, riskLevel:'low', completed:false },
+    { id:'cs23', subtaskId:'sub_7_0', parentTaskId:'mock_task_7', title:'目的地筛选与预算', priority:'P2', estimatedMinutes:60, riskLevel:'low', completed:false },
+  ]},
+  // 7/21（周二）—— 4个领域：自媒体、创业、咨询、课程
+  { date:'2026-07-21', dayLabel:'周二', items:[
+    { id:'cs6', subtaskId:'sub_1_3', parentTaskId:'mock_task_1', title:'视频拍摄', priority:'P0', estimatedMinutes:180, riskLevel:'medium', completed:false, riskNote:'设备电量需提前检查' },
+    { id:'cs24', subtaskId:'sub_4_1', parentTaskId:'mock_task_4', title:'财务模型搭建', priority:'P0', estimatedMinutes:180, riskLevel:'high', completed:false, riskNote:'需与财务顾问确认' },
+    { id:'cs25', subtaskId:'sub_5_2', parentTaskId:'mock_task_5', title:'方案汇报与修订', priority:'P1', estimatedMinutes:120, riskLevel:'low', completed:false },
+    { id:'cs26', subtaskId:'sub_6_2', parentTaskId:'mock_task_6', title:'视频录制与剪辑', priority:'P1', estimatedMinutes:180, riskLevel:'low', completed:false },
+  ]},
+  // 7/22（周三）—— 4个领域：自媒体、创业、课程、生活
+  { date:'2026-07-22', dayLabel:'周三', items:[
+    { id:'cs8', subtaskId:'sub_1_4', parentTaskId:'mock_task_1', title:'剪辑与字幕', priority:'P0', estimatedMinutes:240, riskLevel:'low', completed:false },
+    { id:'cs27', subtaskId:'sub_4_2', parentTaskId:'mock_task_4', title:'BP 撰写与排版', priority:'P0', estimatedMinutes:240, riskLevel:'medium', completed:false },
+    { id:'cs28', subtaskId:'sub_6_1', parentTaskId:'mock_task_6', title:'课件与案例制作', priority:'P0', estimatedMinutes:240, riskLevel:'medium', completed:false, riskNote:'案例有效性需验证' },
+    { id:'cs29', subtaskId:'sub_7_1', parentTaskId:'mock_task_7', title:'机票酒店预订', priority:'P2', estimatedMinutes:45, riskLevel:'low', completed:false },
+  ]},
+  // 7/23（周四）—— 3个领域：自媒体、创业、生活
+  { date:'2026-07-23', dayLabel:'周四', items:[
+    { id:'cs9', subtaskId:'sub_1_5', parentTaskId:'mock_task_1', title:'封面设计与标题优化', priority:'P1', estimatedMinutes:60, riskLevel:'low', completed:false },
+    { id:'cs30', subtaskId:'sub_4_3', parentTaskId:'mock_task_4', title:'投资人路演排练', priority:'P1', estimatedMinutes:90, riskLevel:'medium', completed:false },
+    { id:'cs14', subtaskId:'sub_3_2', parentTaskId:'mock_task_3', title:'正文撰写', priority:'P0', estimatedMinutes:240, riskLevel:'low', completed:false },
+    { id:'cs31', subtaskId:'sub_7_2', parentTaskId:'mock_task_7', title:'行程规划与攻略', priority:'P3', estimatedMinutes:60, riskLevel:'low', completed:false },
+  ]},
+  // 7/24（周五）—— 3个领域：自媒体、咨询、课程
+  { date:'2026-07-24', dayLabel:'周五', items:[
+    { id:'cs16', subtaskId:'sub_2_5', parentTaskId:'mock_task_2', title:'正式直播执行', priority:'P0', estimatedMinutes:120, riskLevel:'high', completed:false, riskNote:'网络稳定性需保障' },
+    { id:'cs32', subtaskId:'sub_5_1', parentTaskId:'mock_task_5', title:'AI 转型方案撰写', priority:'P0', estimatedMinutes:240, riskLevel:'medium', completed:false, riskNote:'需结合行业最佳实践' },
+    { id:'cs33', subtaskId:'sub_6_3', parentTaskId:'mock_task_6', title:'上线与推广', priority:'P1', estimatedMinutes:90, riskLevel:'low', completed:false },
+  ]},
+];
+
+const MOCK_CONFLICTS = [
+  { id:'cf1', type:'capacity', severity:'medium', date:'2026-07-22', message:'周三安排4项任务（约9h），超出日容量，建议拆分或后移' },
+  { id:'cf2', type:'dependency', severity:'high', date:'2026-07-21', message:'「视频拍摄」依赖「拍摄准备」完成，间隔仅1天，建议预留缓冲' },
+  { id:'cf3', type:'deadline', severity:'high', date:'2026-07-24', message:'「正式直播执行」为 deadline 当天任务，前置任务延期将直接冲突' },
+];
+
+// Demo messages
+const DEMO_MESSAGES = [
+  { id:'daily_brief_demo', type:'ai', time:'08:00', isDailyBrief:true, content:'☀️ Summer，早上好，下面是今日简报\n\n📌 今日 Top3 最高优先级事项\n🔴 梳理投资人跟进回复，推进 AI 创业种子轮融资\n🔴 AI 课程第一章完整定稿\n🔴 下午 2 点企业客户 1v1 咨询会谈\n\n⚠️ 项目风险预警\n🟡 自媒体播客已停滞 3 天未更新，长期断更会影响账号流量\n🟡 本周咨询、课程、融资三件高优事项堆叠，精力容易分散\n\n💡 今日时间统筹建议\n上午集中处理投资人邮件与课程文稿；下午整块留给企业咨询；晚间碎片时间补自媒体脚本，不要多线切换消耗注意力。\n\n👉 详情请在右侧「今日焦点」和项目看板中查看完整全景视图。' },
+];
+
+let chatMessages = [...DEMO_MESSAGES];
+let mobileChatMessages = [...DEMO_MESSAGES];
+let pendingProposal = null;
+let currentPCTab = 'projects';
+let calendarView = 'week';
+let calWeekOffset = 0;
+let calMonthOffset = 0;
+
+/* ===== UTILS ===== */
+
+function padDate(d) {
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+function formatShortDate(ds) {
+  const d = new Date(ds+'T00:00:00');
+  return (d.getMonth()+1)+'/'+d.getDate();
+}
+
+function formatMins(m) {
+  if (m>=60) { const h=Math.floor(m/60); const r=m%60; return r>0?h+'h'+r+'m':h+'h'; }
+  return m+'m';
+}
+
+function getProgress(task) {
+  if (!task.subtasks.length) return 0;
+  return Math.round(task.subtasks.filter(s=>s.completed).length/task.subtasks.length*100);
+}
+
+function getStatus(task) {
+  if (task.completed) return 'completed';
+  const done = task.subtasks.filter(s=>s.completed).length;
+  return done>0?'in_progress':'not_started';
+}
+
+function getRisk(task) {
+  if (task.subtasks.some(s=>s.riskLevel==='high'&&!s.completed)) return 'high';
+  if (task.subtasks.some(s=>s.riskLevel==='medium'&&!s.completed)) return 'medium';
+  return 'low';
+}
+
+function getNextAction(task) {
+  const pending = task.subtasks.filter(s=>!s.completed);
+  return pending.length>0?pending[0].title:'全部完成 ✨';
+}
+
+function getGreeting() {
+  const h = new Date().getHours();
+  if (h<6) return '夜深了';
+  if (h<12) return '上午好';
+  if (h<14) return '中午好';
+  if (h<18) return '下午好';
+  return '晚上好';
+}
+
+/* ===== INIT ===== */
+
+function init() {
+  loadAllData();
+  updateChatGreeting();
+  document.getElementById('navGreeting').textContent = getGreeting()+'，';
+  renderChatMessages();
+  renderMobileChatMessages();
+  updateToday();
+  renderProjects();
+  renderCalendar();
+  drawDonut();
+  updateChatInputs();
+  setupWeekTaskTooltips();
+}
+
+function loadAllData() {
+  // Start with seed data
+  tasks = getSeedTasks();
+  // Load user-generated tasks
+  try {
+    const savedUserTasks = localStorage.getItem('summerUserTasks');
+    if (savedUserTasks) {
+      const userTasks = JSON.parse(savedUserTasks);
+      // Filter out any user tasks with IDs that conflict with seed IDs
+      const filtered = userTasks.filter(t => !SEED_TASK_IDS.includes(t.id));
+      tasks = [...tasks, ...filtered];
+    }
+  } catch(e) {}
+  try {
+    const savedDeadlines = localStorage.getItem('summerDeadlines');
+    if (savedDeadlines) Object.assign(PROJECT_DEADLINES, JSON.parse(savedDeadlines));
+  } catch(e) {}
+}
+
+function updateToday() {
+  const now = new Date();
+  const h = now.getHours();
+  document.getElementById('todayTitle').textContent = '今日焦点 · '+(now.getMonth()+1)+'月'+now.getDate()+'日 '+WEEKDAYS_FULL[now.getDay()];
+
+  // Update nav greeting
+  document.getElementById('navGreeting').textContent = getGreeting()+'，';
+
+  let highRisk=0, completed=0, pending=0;
+  const pendingTasks = [];
+  tasks.forEach(t => {
+    t.subtasks.forEach(s => {
+      if (s.completed) completed++;
+      else {
+        pending++;
+        if (s.riskLevel==='high') highRisk++;
+        pendingTasks.push({ title:s.title, priority:s.priority, projectTitle:t.title, projectColor:t.projectColor||PROJECT_COLORS[0], estimatedMinutes:s.estimatedMinutes, riskLevel:s.riskLevel, taskId:t.id });
+      }
+    });
+  });
+  pendingTasks.sort((a,b)=>{ const o={P0:0,P1:1,P2:2,P3:3}; return (o[a.priority]||9)-(o[b.priority]||9); });
+
+  document.getElementById('statHighRisk').textContent = highRisk;
+  document.getElementById('statOverdue').textContent = '1';
+  document.getElementById('statCompleted').textContent = completed;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('pendingCount').textContent = pending;
+
+  const totalMins = pendingTasks.reduce((s,t)=>s+t.estimatedMinutes,0);
+  document.getElementById('pendingHours').textContent = Math.round(totalMins/60);
+
+  // Update brief card 3 lines
+  const l1 = document.getElementById('briefLine1');
+  const l2 = document.getElementById('briefLine2');
+  const l3 = document.getElementById('briefLine3');
+  if (l1 && l2 && l3) {
+    const lifeTips = ['🎾 今天有网球课，运动后效率更高 ✨','📖 睡前阅读 30 分钟：今晚推荐《深度工作》','👨‍👩‍👧 周末陪父母吃饭的计划记得确认哦'];
+    const randomTip = lifeTips[Math.floor(Math.random()*lifeTips.length)];
+    if (pendingTasks.length>0) {
+      l1.textContent = '🔥 最紧急：'+pendingTasks[0].title;
+    } else {
+      l1.textContent = '✨ 今日无紧急任务，享受生活吧';
+    }
+    l2.textContent = h<14 ? '🌙 建议上午处理沟通类事务，深度工作留到晚间' : '🌙 晚间能量高峰期，建议优先攻克深度任务';
+    l3.textContent = randomTip;
+  }
+
+  drawDonut();
+}
+
+/* ===== CHAT ===== */
+
+function renderChatMessages() {
+  const el = document.getElementById('chatMessages');
+  el.innerHTML = chatMessages.map(m => renderMessageHTML(m)).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderMobileChatMessages() {
+  const el = document.getElementById('mobileChatMessages');
+  if (!el) return;
+  el.innerHTML = mobileChatMessages.map(m => renderMessageHTML(m)).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+function renderMessageHTML(m) {
+  const isUser = m.type==='user';
+  const avatarIcon = isUser
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>'
+    : '<img src="https://prd-tc-intl-cdn.codebanana.com/cb-user-uploads/35933c84-d001-4aa5-b7a8-052279e7bf19/LOGO2.jpg" alt="拾瞳" style="width:18px;height:18px;border-radius:50%;">';
+
+  if (m.isDailyBrief) {
+    return '<div class="msg-row" style="max-width:92%;">'+
+      '<div class="msg-avatar ai">'+avatarIcon+'</div>'+
+      '<div class="msg-bubble-wrap">'+
+        '<div class="msg-bubble ai" style="background:#FEF9F0;border:1px solid #FDE68A;border-top-left-radius:4px;">'+
+          '<div style="font-size:10px;font-weight:700;color:#8B5CF6;margin-bottom:8px;display:inline-block;background:#EDE9FE;padding:2px 8px;border-radius:4px;">📋 今日简报</div>'+
+          '<div style="font-size:13px;line-height:1.8;white-space:pre-line;">'+m.content+'</div>'+
+        '</div>'+
+        '<span class="msg-time">'+m.time+'</span>'+
+      '</div></div>';
+  }
+
+  // Proposal buttons
+  let buttonsHTML = '';
+  if (m.hasProposal) {
+    const msgId = m.id;
+    const disabled = m.proposalDisabled ? 'disabled' : '';
+    const opacity = m.proposalDisabled ? 'opacity:0.4;pointer-events:none;' : '';
+    buttonsHTML = '<div style="display:flex;gap:10px;margin-top:10px;">'+
+      '<button onclick="event.stopPropagation();handleProposalConfirm(\''+msgId+'\')" '+disabled+' style="padding:8px 20px;border-radius:6px;border:none;background:#10B981;color:white;font-size:13px;cursor:pointer;font-family:var(--font-sans);'+opacity+'">✅ 确认</button>'+
+      '<button onclick="event.stopPropagation();handleProposalModify(\''+msgId+'\')" '+disabled+' style="padding:8px 20px;border-radius:6px;border:none;background:#8B5CF6;color:white;font-size:13px;cursor:pointer;font-family:var(--font-sans);'+opacity+'">✏️ 修改</button>'+
+      '<button onclick="event.stopPropagation();handleProposalCancel(\''+msgId+'\')" '+disabled+' style="padding:8px 20px;border-radius:6px;border:none;background:#EF4444;color:white;font-size:13px;cursor:pointer;font-family:var(--font-sans);'+opacity+'">❌ 取消</button>'+
+      '</div>';
+  }
+
+  return '<div class="msg-row'+(isUser?' user':'')+'">'+
+    '<div class="msg-avatar '+(isUser?'user':'ai')+'">'+avatarIcon+'</div>'+
+    '<div class="msg-bubble-wrap">'+
+      '<div class="msg-bubble '+(isUser?'user':'ai')+'">'+m.content+buttonsHTML+'</div>'+
+      '<span class="msg-time'+(isUser?' user':'')+'">'+m.time+'</span>'+
+    '</div></div>';
+}
+
+// Auto-match domain from task text
+function matchDomain(text) {
+  const lower = text.toLowerCase();
+  const rules = [
+    { keywords: ['短视频','直播','公众号','播客','小红书','抖音','自媒体','内容','发文'], domain: '自媒体' },
+    { keywords: ['路演','融资','bp','投资人','创业','种子轮','商业计划书'], domain: '创业' },
+    { keywords: ['咨询','客户','方案','顾问','企业'], domain: '咨询' },
+    { keywords: ['课程','大纲','课件','学员','培训'], domain: '课程' },
+    { keywords: ['旅行','网球','父母','生活','运动','阅读'], domain: '生活' },
+  ];
+  for (const rule of rules) {
+    if (rule.keywords.some(kw => lower.includes(kw))) return rule.domain;
+  }
+  return '其他';
+}
+
+// Demo trigger keywords
+const DEMO_TRIGGERS = ['小红书商务合作','品牌小红书','商单项目','下周三需要发布合作笔记','品牌合作'];
+
+function isDemoTrigger(text) {
+  const lower = text.toLowerCase();
+  return DEMO_TRIGGERS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+// Modify flow keywords
+const MODIFY_KEYWORDS = ['周六','打网球','拍摄改到周日','网球','周日拍摄'];
+
+function isModifyTrigger(text) {
+  const lower = text.toLowerCase();
+  return MODIFY_KEYWORDS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+// Task completion sync trigger keywords
+const COMPLETION_TRIGGERS = ['黑客松 prd 文档','prd 文档已经全部写完','prd 写完了','完成了','写完了'];
+
+function isCompletionTrigger(text) {
+  const lower = text.toLowerCase();
+  return COMPLETION_TRIGGERS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+// Travel planning trigger keywords
+const TRAVEL_TRIGGERS = ['去云南玩','云南','旅游','出去玩','出行','旅行'];
+
+function isTravelTrigger(text) {
+  const lower = text.toLowerCase();
+  return TRAVEL_TRIGGERS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+// Emotional support trigger keywords
+const EMOTIONAL_TRIGGERS = ['投资人婉拒','婉拒了','想放弃了','客户延期','有点想放弃了'];
+
+function isEmotionalTrigger(text) {
+  const lower = text.toLowerCase();
+  return EMOTIONAL_TRIGGERS.some(kw => lower.includes(kw.toLowerCase()));
+}
+
+// Scene state for emotional support
+const sceneState = { currentScene: null, step: 0 };
+
+function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+
+  chatMessages.push({ id:'msg_'+Date.now()+'_u', type:'user', content:text, time:timeStr });
+  renderChatMessages();
+  input.value = '';
+  updateChatInputs();
+
+  // Emotional support — step 2 (reply to "先休息")
+  if (sceneState.currentScene==='emotional_support' && sceneState.step===1) {
+    const lower = text.toLowerCase();
+    if (lower.includes('先休息')||lower.includes('调整节奏')||lower.includes('明天')) {
+      setTimeout(() => {
+        const aiTime = new Date();
+        const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+        chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'收到，所有待办自动延后至明日简报，祝你好好放松。', time:aiTimeStr });
+        sceneState.step = 2;
+        renderChatMessages();
+      }, 600);
+      return;
+    }
+  }
+
+  // Emotional support trigger (highest priority)
+  if (isEmotionalTrigger(text)) {
+    sceneState.currentScene = 'emotional_support';
+    sceneState.step = 1;
+    setTimeout(() => {
+      const aiTime = new Date();
+      const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+      const emotionalContent = '我特别懂这种落差，创业最难的从来不是忙，是付出很多但暂时看不到正向结果。我先帮你梳理今天已经落地的成果：\n\n  - 黑客松 PRD 完整定稿 ✔\n  - 完成一场企业深度咨询会谈 ✔\n  - 敲定小红书长期品牌合作 ✔\n  - AI 课程第一章完成大半 ✔\n\n今天已经产出很多有效成果，剩下所有任务我全部重新顺延至明天，今晚不用继续工作。\n\n你平时靠网球、独处、美食恢复心力，建议今晚早点休息或者出门放松，心力恢复比多赶一项任务更重要。\n\n创业是长跑，我会全程陪着你慢慢推进。';
+      chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:emotionalContent, time:aiTimeStr });
+      renderChatMessages();
+    }, 800);
+    return;
+  }
+
+  // Check if we're in modify flow
+  if (pendingProposal && pendingProposal.step==='modified') {
+    setTimeout(() => {
+      const aiTime = new Date();
+      const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+      const msgId = 'msg_'+Date.now()+'_ai';
+
+      // Travel modify flow
+      if (pendingProposal.type==='travel') {
+        const lower = text.toLowerCase();
+        if (lower.includes('8.1')||lower.includes('8.5')||lower.includes('换')) {
+          const modifiedContent = '已根据你的要求调整为 8.1-8.5 出行方案，重新评估如下：\n\n推荐出行：8.1-8.5（5 天）\n  - 出行前必须完成：投资人跟进、小红书商单全流程交付 ✅\n  - 旅行期间需注意：课程初稿审核在 8.3 进行，建议提前一天完成提交，或携带电脑途中处理 ⚠️\n  - 返程后立即进入课程定稿冲刺，时间较紧张\n\n风险提示：8.1-8.5 会撞上课程初稿审核，建议提前完成或途中轻量处理。\n\n请问是否确认选择 8.1-8.5 这套出行规划？';
+          chatMessages.push({ id:msgId, type:'ai', content:modifiedContent, time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+          pendingProposal.step = 'proposal';
+          pendingProposal.msgId = msgId;
+          pendingProposal.data = { plan:'8.1-8.5' };
+        } else {
+          chatMessages.push({ id:msgId, type:'ai', content:'收到你的调整建议，已更新方案。请确认是否还有其他调整？如无，请点击「确认」同步到工作台。', time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+          pendingProposal.step = 'proposal';
+          pendingProposal.msgId = msgId;
+        }
+        renderChatMessages();
+        return;
+      }
+
+      if (isModifyTrigger(text)) {
+        const modifiedContent = '已根据你的运动安排重新调整新版规划，如下：\n\n【项目：自媒体】【任务：小红书商务合作笔记】\n\n今日：确认品牌需求\n明日：脚本策划\n周日：全天素材拍摄\n下周一：剪辑 + 提交品牌审核\n下周二：修改定稿\n下周三：正式发布\n\n优化建议：周日拍摄不占用工作日核心开发时间，周一上午剪辑不耽误课程写作，不会冲突。\n\n新版方案是否确认？';
+        chatMessages.push({ id:msgId, type:'ai', content:modifiedContent, time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+        pendingProposal.step = 'proposal';
+        pendingProposal.msgId = msgId;
+        pendingProposal.data = getDemoTaskData();
+      } else {
+        chatMessages.push({ id:msgId, type:'ai', content:'收到你的调整建议，已更新方案。请确认是否还有其他调整？如无，请点击「确认」同步到工作台。', time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+        pendingProposal.step = 'proposal';
+        pendingProposal.msgId = msgId;
+      }
+      renderChatMessages();
+    }, 800);
+    return;
+  }
+
+  // Completion sync trigger (higher priority than demo)
+  if (isCompletionTrigger(text)) {
+    setTimeout(() => {
+      const aiTime = new Date();
+      const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+      const completionContent = '我会将「黑客松 PRD 定稿」这条子任务标记为已完成，今日完成进度会同步上涨，剩余前端开发提升至极高置顶优先级，是否确认更新任务状态？';
+      const msgId = 'msg_'+Date.now()+'_ai';
+      chatMessages.push({ id:msgId, type:'ai', content:completionContent, time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+      pendingProposal = { type:'completion', data:null, step:'proposal', msgId:msgId };
+      renderChatMessages();
+    }, 600);
+    return;
+  }
+
+  // Demo mode trigger
+  if (isDemoTrigger(text)) {
+    setTimeout(() => {
+      const aiTime = new Date();
+      const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+      const demoContent = '我结合你手上全部 5 条业务线，梳理出整套项目执行规划，先给你核对，未同步到工作台，有调整直接和我说：\n\n【项目：自媒体】【任务：小红书商务合作笔记】\n\n完整时间线拆解：\n今日：确认品牌需求\n明日：脚本策划撰写\n周六：线下拍摄素材\n周日：视频图文剪辑\n下周一：品牌方审核修改\n下周三：正式发布\n\n全局统筹提醒：你本周还要集中完成黑客松 Demo、课程定稿，周六整块拍摄会挤占开发时间，容易两头拖延，我优先把拍摄安排在周六。\n\n请问这套时间规划是否可行，需要调整日期、任务吗？';
+      const msgId = 'msg_'+Date.now()+'_ai';
+      chatMessages.push({ id:msgId, type:'ai', content:demoContent, time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+      pendingProposal = { type:'demo', data:getDemoTaskData(), step:'proposal', msgId:msgId };
+      renderChatMessages();
+    }, 800);
+    return;
+  }
+
+  // Travel planning trigger
+  if (isTravelTrigger(text)) {
+    setTimeout(() => {
+      const aiTime = new Date();
+      const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+      const travelContent = '调取你全部项目 DDL、长期任务测算两套出行方案，对比后推荐最优时段，规划暂未同步日历：\n\n推荐出行：8.6-8.10（5 天）✅\n  - 出行前必须完成：投资人跟进、课程第一章定稿、小红书商单全流程交付 ✅\n  - 旅行期间仅需轻量工作：自媒体文字复盘，无拍摄、咨询、高强度写作任务 ✅\n  - 返程后再启动下一批客户咨询，不会出现交付延期 ✅\n\n备选：8.1-8.5，会撞上课程初稿审核，风险偏高。\n\n请问是否确认选择 8.6-8.10 这套出行规划？';
+      const msgId = 'msg_'+Date.now()+'_ai';
+      chatMessages.push({ id:msgId, type:'ai', content:travelContent, time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+      pendingProposal = { type:'travel', data:{ plan:'8.6-8.10' }, step:'proposal', msgId:msgId };
+      renderChatMessages();
+    }, 800);
+    return;
+  }
+
+  // Normal decompose mode (no auto-write)
+  setTimeout(() => {
+    const aiTime = new Date();
+    const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+
+    const decomposed = decomposeTask(text);
+    const totalMins = decomposed.reduce((s,d)=>s+d.estimatedMinutes,0);
+    const totalH = Math.round(totalMins/60);
+    const riskItems = decomposed.filter(d=>d.riskLevel==='high');
+
+    let aiContent = '好的，我已为你拆解完成 ✨\n\n「'+text+'」→ '+decomposed.length+' 个子任务：\n';
+    decomposed.forEach((sub,i) => { aiContent += '\n'+(i+1)+'. '+sub.title+'（'+sub.priority+' · '+sub.estimatedMinutes+'min）'; });
+    aiContent += '\n\n⏱ 预计总耗时约 '+totalH+' 小时，建议分配到未来 7 天执行。';
+    if (riskItems.length>0) aiContent += '\n⚠️ 高风险项：'+riskItems.map(r=>r.riskNote||r.title).join('；');
+    else aiContent += '\n✅ 未检测到高风险项，排期较充裕。';
+    aiContent += '\n\n已为您拆解任务，请在确认后点击「确认」按钮同步到工作台。';
+
+    const msgId = 'msg_'+Date.now()+'_ai';
+    chatMessages.push({ id:msgId, type:'ai', content:aiContent, time:aiTimeStr, hasProposal:true, proposalDisabled:false });
+    pendingProposal = { type:'parsed', data:{ title:text, domain:matchDomain(text), decomposed:decomposed }, step:'proposal', msgId:msgId };
+    renderChatMessages();
+  }, 1200);
+}
+
+function getDemoTaskData() {
+  return {
+    id: 'demo_xiaohongshu',
+    title: '小红书商务合作笔记',
+    domain: '自媒体',
+    projectColor: '#EC4899',
+    subtasks: [
+      { id:'xh_1', taskId:'demo_xiaohongshu', title:'确认品牌需求', priority:'P0', estimatedMinutes:60, riskLevel:'low', riskNote:'', completed:false },
+      { id:'xh_2', taskId:'demo_xiaohongshu', title:'脚本策划', priority:'P0', estimatedMinutes:120, riskLevel:'low', riskNote:'', completed:false },
+      { id:'xh_3', taskId:'demo_xiaohongshu', title:'全天素材拍摄', priority:'P0', estimatedMinutes:240, riskLevel:'medium', riskNote:'', completed:false },
+      { id:'xh_4', taskId:'demo_xiaohongshu', title:'剪辑 + 提交品牌审核', priority:'P0', estimatedMinutes:180, riskLevel:'low', riskNote:'', completed:false },
+      { id:'xh_5', taskId:'demo_xiaohongshu', title:'修改定稿', priority:'P1', estimatedMinutes:60, riskLevel:'low', riskNote:'', completed:false },
+      { id:'xh_6', taskId:'demo_xiaohongshu', title:'正式发布', priority:'P1', estimatedMinutes:30, riskLevel:'low', riskNote:'', completed:false },
+    ],
+    completed: false, createdAt: new Date().toISOString()
+  };
+}
+
+function handleProposalConfirm(msgId) {
+  if (!pendingProposal || pendingProposal.msgId!==msgId) return;
+  const msg = chatMessages.find(m=>m.id===msgId);
+  if (msg) msg.proposalDisabled = true;
+
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+
+  if (pendingProposal.type==='demo') {
+    tasks.push(pendingProposal.data);
+    chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'收到确认！已将整套商单项目、所有子任务、时间节点同步至工作台「今天 / 未来 / 项目」三大视图，全局优先级重新计算，今日视图新增待办。', time:timeStr });
+  } else if (pendingProposal.type==='parsed') {
+    const { title, domain, decomposed } = pendingProposal.data;
+    const newTaskId = 'task_'+Date.now();
+    const newTask = {
+      id: newTaskId, title: title, domain: domain, description: '', stage: 'started',
+      subtasks: decomposed.map((d,idx)=>({
+        id: 'sub_'+newTaskId+'_'+idx, taskId: newTaskId,
+        title: d.title, priority: d.priority, estimatedMinutes: d.estimatedMinutes,
+        riskLevel: d.riskLevel, riskNote: d.riskNote||'', completed: false
+      })),
+      completed: false, createdAt: new Date().toISOString(),
+      projectColor: PROJECT_COLORS[tasks.length%PROJECT_COLORS.length]
+    };
+    tasks.push(newTask);
+    chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'已同步到工作台 ✅\n\n可在右侧「项目看板」中查看和管理该任务。', time:timeStr });
+  } else if (pendingProposal.type==='completion') {
+    // Find and mark PRD subtask as completed
+    let found = false;
+    for (const task of tasks) {
+      const titleLower = task.title.toLowerCase();
+      if (titleLower.includes('黑客松')||titleLower.includes('prd')||titleLower.includes('demo')) {
+        for (const sub of task.subtasks) {
+          const subLower = sub.title.toLowerCase();
+          if ((subLower.includes('prd')||subLower.includes('文档')) && !sub.completed) {
+            sub.completed = true;
+            found = true;
+            break;
+          }
+        }
+        if (found) break;
+      }
+    }
+    if (!found) {
+      // Create demo task if not found
+      tasks.push({
+        id: 'demo_hackathon', title: '黑客松 Demo', domain: '创业', projectColor: '#8B5CF6',
+        subtasks: [
+          { id:'hk_1', taskId:'demo_hackathon', title:'PRD 文档定稿', priority:'P0', estimatedMinutes:240, riskLevel:'high', riskNote:'', completed:true },
+          { id:'hk_2', taskId:'demo_hackathon', title:'前端开发', priority:'P0', estimatedMinutes:480, riskLevel:'high', riskNote:'', completed:false },
+        ],
+        completed: false, createdAt: new Date().toISOString()
+      });
+    }
+    chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'已刷新工作台今日视图进度占比，今日完成率 65%→82%，剩余 Demo 开发维持页面 Top1 优先级展示。', time:timeStr });
+  } else if (pendingProposal.type==='travel') {
+    const plan = pendingProposal.data?.plan||'8.6-8.10';
+    tasks.push({
+      id: 'demo_travel', title: '云南 5 日旅行计划（'+plan+'）', domain: '生活', projectColor: '#3B82F6',
+      subtasks: [
+        { id:'tr_1', taskId:'demo_travel', title:'投资人跟进', priority:'P0', estimatedMinutes:120, riskLevel:'high', riskNote:'出行前必须完成', completed:false },
+        { id:'tr_2', taskId:'demo_travel', title:'课程第一章定稿', priority:'P0', estimatedMinutes:180, riskLevel:'high', riskNote:'出行前必须完成', completed:false },
+        { id:'tr_3', taskId:'demo_travel', title:'小红书商单全流程交付', priority:'P0', estimatedMinutes:240, riskLevel:'high', riskNote:'出行前必须完成', completed:false },
+        { id:'tr_4', taskId:'demo_travel', title:'自媒体文字复盘', priority:'P2', estimatedMinutes:30, riskLevel:'low', riskNote:'旅行期间轻量完成', completed:false },
+      ],
+      completed: false, createdAt: new Date().toISOString()
+    });
+    chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'已同步旅行计划至工作台「未来」30 天日历视图，自动避开出行日安排硬性高优任务，前置交付事项全部标记为今日、本周重点提醒。', time:timeStr });
+  }
+
+  saveAllData();
+  updateToday();
+  renderProjects();
+  renderCalendar();
+  drawDonut();
+
+  // Trigger domain card animation
+  const newDomain = pendingProposal.type==='demo' ? pendingProposal.data.domain : pendingProposal.type==='parsed' ? pendingProposal.data.domain : pendingProposal.type==='travel' ? '生活' : null;
+  if (newDomain) {
+    setTimeout(() => animateDomainCard(newDomain), 200);
+  }
+
+  // Animate stat numbers for completion type
+  if (pendingProposal.type==='completion') {
+    setTimeout(() => animateStatNumbers(), 100);
+  }
+
+  pendingProposal = null;
+  renderChatMessages();
+}
+
+function animateDomainCard(domain) {
+  const domainId = 'domain_' + domain.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
+  const card = document.getElementById(domainId+'_card');
+  if (!card) return;
+
+  // 1. Border flash
+  card.style.animation = 'domainCardFlash 1.5s ease';
+  setTimeout(() => { card.style.animation = ''; }, 1500);
+
+  // 2. Badge
+  const badge = document.createElement('div');
+  badge.textContent = '✨ +1 新项目';
+  badge.style.cssText = 'position:absolute;top:-12px;right:-8px;z-index:10;background:white;border-radius:20px;padding:4px 14px;font-size:13px;color:#8B5CF6;border:1px solid #8B5CF6;box-shadow:0 2px 8px rgba(139,92,246,0.15);animation:badgePopIn 0.3s ease;white-space:nowrap;';
+  card.style.position = 'relative';
+  card.style.overflow = 'visible';
+  card.appendChild(badge);
+
+  setTimeout(() => {
+    badge.style.animation = 'badgeFadeOut 0.3s ease forwards';
+    setTimeout(() => badge.remove(), 300);
+  }, 1800);
+}
+
+function animateStatNumbers() {
+  const el = document.getElementById('statCompleted');
+  if (el) {
+    el.style.animation = 'none';
+    el.offsetHeight; // reflow
+    el.style.animation = 'numberBounce 0.6s ease';
+    el.style.color = '#10B981';
+    setTimeout(() => { el.style.color = ''; }, 600);
+  }
+  const el2 = document.getElementById('statPending');
+  if (el2) {
+    el2.style.animation = 'none';
+    el2.offsetHeight;
+    el2.style.animation = 'numberBounce 0.6s ease';
+  }
+}
+
+function handleProposalModify(msgId) {
+  if (!pendingProposal || pendingProposal.msgId!==msgId) return;
+  const msg = chatMessages.find(m=>m.id===msgId);
+  if (msg) msg.proposalDisabled = true;
+  pendingProposal.step = 'modified';
+
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'好的，请告诉我需要调整的内容。', time:timeStr });
+  renderChatMessages();
+}
+
+function handleProposalCancel(msgId) {
+  if (!pendingProposal || pendingProposal.msgId!==msgId) return;
+  const msg = chatMessages.find(m=>m.id===msgId);
+  if (msg) msg.proposalDisabled = true;
+  pendingProposal = null;
+
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:'好的，已取消该方案。如有需要随时告诉我。', time:timeStr });
+  renderChatMessages();
+}
+
+function sendMobileMessage() {
+  const input = document.getElementById('mobileChatInput');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+
+  mobileChatMessages.push({ id:'msg_'+Date.now()+'_u', type:'user', content:text, time:timeStr });
+  renderMobileChatMessages();
+  input.value = '';
+  updateChatInputs();
+
+  setTimeout(() => {
+    const aiTime = new Date();
+    const aiTimeStr = aiTime.getHours().toString().padStart(2,'0')+':'+aiTime.getMinutes().toString().padStart(2,'0');
+    const decomposed = decomposeTask(text);
+    const totalMins = decomposed.reduce((s,d)=>s+d.estimatedMinutes,0);
+    const totalH = Math.round(totalMins/60);
+    let aiContent = '好的，我已为你拆解完成 ✨\n\n「'+text+'」→ '+decomposed.length+' 个子任务：\n';
+    decomposed.forEach((sub,i)=>{ aiContent += '\n'+(i+1)+'. '+sub.title+'（'+sub.priority+' · '+sub.estimatedMinutes+'min）'; });
+    aiContent += '\n\n⏱ 预计总耗时约 '+totalH+' 小时。';
+    mobileChatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content:aiContent, time:aiTimeStr });
+    renderMobileChatMessages();
+  }, 1200);
+}
+
+function handleChatKeydown(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function handleMobileChatKeydown(e) {
+  if (e.key==='Enter' && !e.shiftKey) { e.preventDefault(); sendMobileMessage(); }
+}
+
+function updateChatInputs() {
+  const input = document.getElementById('chatInput');
+  const btn = document.getElementById('sendBtn');
+  btn.disabled = !input.value.trim();
+
+  const mInput = document.getElementById('mobileChatInput');
+  const mBtn = document.getElementById('mobileSendBtn');
+  if (mInput && mBtn) mBtn.disabled = !mInput.value.trim();
+}
+
+function focusInput() { document.getElementById('chatInput').focus(); }
+
+function generateReport() {
+  const completedCount = tasks.reduce((s,t)=>s+t.subtasks.filter(sub=>sub.completed).length,0);
+  const totalSubs = tasks.reduce((s,t)=>s+t.subtasks.length,0);
+  const now = new Date();
+  const timeStr = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  const content = '📊 本周工作周报\n\n共管理 '+tasks.length+' 个主任务，'+totalSubs+' 个子任务。\n已完成 '+completedCount+' 个子任务，完成率 '+(totalSubs>0?Math.round(completedCount/totalSubs*100):0)+'%。\n\n💡 建议：优先处理高风险任务，合理安排每日工作量，注意劳逸结合 ✨';
+  chatMessages.push({ id:'msg_'+Date.now()+'_ai', type:'ai', content, time:timeStr });
+  renderChatMessages();
+}
+
+// Simple keyword-based task decomposer
+function decomposeTask(title) {
+  const lower = title.toLowerCase();
+  const templates = [
+    { keywords:['短视频','视频','拍摄','剪辑','抖音','快手','vlog'], subtasks:[
+      {title:'选题策划与脚本撰写',priority:'P0',estimatedMinutes:90,riskLevel:'low',riskNote:''},
+      {title:'拍摄准备与场景布置',priority:'P1',estimatedMinutes:60,riskLevel:'medium',riskNote:'提前检查设备电量与场地预约'},
+      {title:'视频拍摄执行',priority:'P0',estimatedMinutes:150,riskLevel:'medium',riskNote:'注意光线与收音质量'},
+      {title:'后期剪辑与字幕调色',priority:'P0',estimatedMinutes:180,riskLevel:'low',riskNote:''},
+      {title:'封面设计与发布推广',priority:'P1',estimatedMinutes:60,riskLevel:'low',riskNote:'选择流量高峰时段发布'},
+    ]},
+    { keywords:['直播','带货','直播间','开播'], subtasks:[
+      {title:'选品与定价策略制定',priority:'P0',estimatedMinutes:120,riskLevel:'high',riskNote:'确认库存与供应链时效'},
+      {title:'直播脚本与话术撰写',priority:'P0',estimatedMinutes:120,riskLevel:'medium',riskNote:'提前演练关键话术节点'},
+      {title:'直播间搭建与设备调试',priority:'P1',estimatedMinutes:90,riskLevel:'medium',riskNote:'灯光与网络稳定性测试'},
+      {title:'预热推广与社群引流',priority:'P1',estimatedMinutes:90,riskLevel:'medium',riskNote:'需提前2-3天启动预热'},
+      {title:'正式直播与数据复盘',priority:'P0',estimatedMinutes:150,riskLevel:'high',riskNote:'网络稳定性需保障'},
+    ]},
+    { keywords:['公众号','文章','推文','长文','写作','文案','博客','专栏'], subtasks:[
+      {title:'选题调研与大纲撰写',priority:'P0',estimatedMinutes:90,riskLevel:'low',riskNote:''},
+      {title:'初稿正文撰写',priority:'P0',estimatedMinutes:180,riskLevel:'low',riskNote:''},
+      {title:'配图设计与排版美化',priority:'P1',estimatedMinutes:75,riskLevel:'low',riskNote:''},
+      {title:'内容校对与标题优化',priority:'P1',estimatedMinutes:45,riskLevel:'medium',riskNote:'标题A/B测试提升打开率'},
+      {title:'定时发布与社群推广',priority:'P2',estimatedMinutes:40,riskLevel:'low',riskNote:''},
+    ]},
+  ];
+  const defaultSubtasks = [
+    {title:'需求澄清与目标确认',priority:'P0',estimatedMinutes:45,riskLevel:'low',riskNote:''},
+    {title:'资料收集与方案准备',priority:'P1',estimatedMinutes:90,riskLevel:'low',riskNote:''},
+    {title:'核心内容执行',priority:'P0',estimatedMinutes:180,riskLevel:'medium',riskNote:'把控关键交付质量'},
+    {title:'质量检查与细节优化',priority:'P1',estimatedMinutes:60,riskLevel:'low',riskNote:''},
+    {title:'成果交付与经验总结',priority:'P2',estimatedMinutes:45,riskLevel:'low',riskNote:''},
+  ];
+  for (const tmpl of templates) {
+    if (tmpl.keywords.some(kw=>lower.includes(kw))) return tmpl.subtasks;
+  }
+  return defaultSubtasks;
+}
+
+/* ===== MODAL ===== */
+
+function getFilteredTasks(filter) {
+  const allItems = [];
+  tasks.forEach(t => {
+    t.subtasks.forEach(s => {
+      allItems.push({ ...s, projectTitle:t.title, projectColor:t.projectColor||PROJECT_COLORS[0], taskId:t.id });
+    });
+  });
+  switch(filter) {
+    case 'highRisk': return allItems.filter(s => s.riskLevel==='high' && !s.completed);
+    case 'overdue': return allItems.filter(s => !s.completed).slice(0, 3);
+    case 'completed': return allItems.filter(s => s.completed);
+    case 'pending': return allItems.filter(s => !s.completed);
+    case 'brief': return allItems.filter(s => !s.completed).sort((a,b)=>{const o={P0:0,P1:1,P2:2,P3:3};return (o[a.priority]||9)-(o[b.priority]||9);});
+    default: return [];
+  }
+}
+
+function openStatModal(filter) {
+  const items = getFilteredTasks(filter);
+  const titles = { highRisk:'高风险任务', overdue:'已逾期任务', completed:'已完成任务', pending:'待办任务' };
+  showModal(titles[filter]||'任务列表', items);
+}
+
+function openBriefModal() {
+  const items = getFilteredTasks('brief');
+  showModal('📋 今日简报 · 全部任务（按优先级排序）', items);
+}
+
+function showModal(title, items) {
+  const priorityOrder = { P0:0, P1:1, P2:2, P3:3 };
+  const sorted = [...items].sort((a,b)=>(priorityOrder[a.priority]||9)-(priorityOrder[b.priority]||9));
+  const badgeMap = { P0:'border-color:rgba(139,92,246,0.3);color:var(--primary);', P1:'border-color:rgba(139,92,246,0.2);color:rgba(139,92,246,0.7);', P2:'border-color:rgba(0,0,0,0.1);color:var(--muted-foreground);', P3:'border-color:rgba(0,0,0,0.08);color:rgba(0,0,0,0.4);' };
+  const riskMap = { high:'⚠ 高风险', medium:'· 中风险', low:'' };
+
+  let bodyHTML = '';
+  if (sorted.length===0) {
+    bodyHTML = '<div style="text-align:center;padding:32px 16px;color:#9CA3AF;font-size:14px;">✨ 暂无相关任务</div>';
+  } else {
+    bodyHTML = sorted.map(s => {
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;margin-bottom:6px;font-size:13px;transition:background 0.1s;" onmouseover="this.style.background=\'#F9FAFB\'" onmouseout="this.style.background=\'transparent\'">'+
+        '<span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:'+s.projectColor+'"></span>'+
+        '<div style="flex:1;min-width:0;">'+
+          '<div style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+(s.completed?'<span style="text-decoration:line-through;opacity:0.5;">'+s.title+'</span>':s.title)+'</div>'+
+          '<div style="font-size:11px;color:#6B7280;display:flex;align-items:center;gap:8px;margin-top:2px;">'+
+            '<span>'+s.projectTitle+'</span>'+
+            (s.completed?'<span style="color:var(--success);">✓ 已完成</span>':(riskMap[s.riskLevel]||'')+'<span>'+formatMins(s.estimatedMinutes)+'</span>')+
+          '</div>'+
+        '</div>'+
+        '<span style="font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid;flex-shrink:0;'+(badgeMap[s.priority]||'')+'">'+s.priority+'</span>'+
+      '</div>';
+    }).join('');
+  }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;';
+  overlay.onclick = function(e) { if (e.target===overlay) overlay.remove(); };
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:white;border-radius:16px;width:90%;max-width:560px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);animation:modalIn 0.2s ease;';
+  content.onclick = function(e) { e.stopPropagation(); };
+
+  content.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #E5E7EB;flex-shrink:0;">'+
+    '<h3 style="font-size:16px;font-weight:600;">'+title+'</h3>'+
+    '<button style="width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;" onclick="this.closest(\'div\').parentElement.parentElement.remove()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+    '</div>'+
+    '<div style="flex:1;overflow-y:auto;padding:16px 20px;">'+bodyHTML+'</div>';
+
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+}
+
+// Add modal animation
+const modalStyle = document.createElement('style');
+modalStyle.textContent = '@keyframes modalIn { from { opacity:0; transform:translateY(16px) scale(0.98); } to { opacity:1; transform:translateY(0) scale(1); } }';
+document.head.appendChild(modalStyle);
+
+/* ===== DONUT CHART ===== */
+
+function drawDonut() {
+  const canvas = document.getElementById('donutChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx=70, cy=70, r=50, ir=36;
+  ctx.clearRect(0,0,140,140);
+
+  // Get today's date string
+  const today = new Date();
+  const todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+
+  // Collect today's subtasks from calendar schedule
+  const todaySubtasks = [];
+  MOCK_CALENDAR_SCHEDULE.forEach(day => {
+    if (day.date === todayStr) {
+      day.items.forEach(item => {
+        if (!item.completed) {
+          const parentTask = tasks.find(t=>t.id===item.parentTaskId);
+          todaySubtasks.push({ ...item, domain: parentTask?parentTask.domain:'其他', projectColor: parentTask?parentTask.projectColor:'#9CA3AF' });
+        }
+      });
+    }
+  });
+
+  // DOMAIN_COLORS
+  const DOMAIN_COLORS = { '自媒体':'#EC4899', '创业':'#8B5CF6', '咨询':'#F59E0B', '课程':'#10B981', '生活':'#3B82F6', '其他':'#9CA3AF' };
+
+  // Group by domain
+  const domainGroups = {};
+  todaySubtasks.forEach(s => {
+    const d = s.domain||'其他';
+    if (!domainGroups[d]) domainGroups[d] = { count:0, color:DOMAIN_COLORS[d]||'#9CA3AF', value:0 };
+    domainGroups[d].count++;
+    domainGroups[d].value += s.estimatedMinutes||30;
+  });
+  const data = Object.entries(domainGroups).map(([domain, info]) => ({ label:domain, ...info }));
+
+  const totalPending = todaySubtasks.length;
+  const total = data.reduce((s,d)=>s+d.value,0)||1;
+
+  if (totalPending===0) {
+    // Empty state: gray ring
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.arc(cx,cy,ir,Math.PI*2,0,true);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(0,0,0,0.04)';
+    ctx.fill();
+
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = 'bold 14px "Noto Sans SC", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('今日无待办 🎉', cx, cy);
+
+    const legendContainer = document.getElementById('donutLegend');
+    if (legendContainer) legendContainer.innerHTML = '<span style="font-size:10px;color:#9CA3AF;">今日无任务安排</span>';
+    return;
+  }
+
+  let angle = -Math.PI/2;
+  window._donutArcs = [];
+
+  data.forEach(d => {
+    const slice = Math.max((d.value/total)*Math.PI*2, 0.05);
+    const startAngle = angle;
+    const endAngle = angle + slice;
+    ctx.beginPath();
+    ctx.arc(cx,cy,r,startAngle,endAngle);
+    ctx.arc(cx,cy,ir,endAngle,startAngle,true);
+    ctx.closePath();
+    ctx.fillStyle = d.color;
+    ctx.fill();
+    window._donutArcs.push({ startAngle, endAngle, label:d.label, count:d.count, color:d.color });
+    angle = endAngle;
+  });
+
+  // Center text — try to match brief card gradient color
+  let textColor = '#8B5CF6';
+  try {
+    const briefCard = document.getElementById('briefCard');
+    if (briefCard) {
+      const style = getComputedStyle(briefCard);
+      const bg = style.backgroundImage;
+      if (bg && bg.includes('gradient')) {
+        // Extract first color from gradient
+        const match = bg.match(/#[0-9A-Fa-f]{6}/);
+        if (match) textColor = match[0];
+      } else if (style.backgroundColor && style.backgroundColor!=='rgba(0,0,0,0)') {
+        textColor = style.backgroundColor;
+      }
+    }
+  } catch(e) {}
+
+  ctx.shadowColor = 'rgba(0,0,0,0.08)';
+  ctx.shadowBlur = 2;
+  ctx.fillStyle = textColor;
+  ctx.font = 'bold 13px "Noto Sans SC", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('注意力', cx, cy-10);
+  ctx.fillText('分配', cx, cy+10);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+
+  // Hover tooltip
+  canvas.onmousemove = function(e) {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const dx = mx - cx, dy = my - cy, dist = Math.sqrt(dx*dx+dy*dy);
+    const hitAngle = Math.atan2(dy, dx);
+    let normAngle = hitAngle < -Math.PI/2 ? hitAngle + Math.PI*2 : hitAngle;
+    while (normAngle < -Math.PI/2) normAngle += Math.PI*2;
+    let found = null;
+    window._donutArcs.forEach(arc => {
+      let sa = arc.startAngle, ea = arc.endAngle;
+      while (sa < -Math.PI/2) { sa += Math.PI*2; ea += Math.PI*2; }
+      if (dist >= ir && dist <= r && normAngle >= sa && normAngle <= ea) found = arc;
+    });
+    canvas.style.cursor = found ? 'pointer' : 'default';
+    canvas.title = found ? (found.label + ': ' + found.count + ' 项待办') : '';
+  };
+
+  // Legend
+  const legendContainer = document.getElementById('donutLegend');
+  if (legendContainer) {
+    legendContainer.innerHTML = data.map(d => {
+      return '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;color:var(--muted-foreground);margin-right:10px;margin-bottom:2px;white-space:nowrap;">'+
+        '<span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:'+d.color+'"></span>'+
+        d.label+' '+d.count+'</span>';
+    }).join('');
+  }
+}
+
+/* ===== PROJECTS ===== */
+
+function renderProjects() {
+  const el = document.getElementById('projectGrid');
+  if (tasks.length===0) {
+    el.innerHTML = '<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg><p>暂无项目</p><p class="sub">通过对话创建任务后，项目会自动出现在这里</p></div>';
+    return;
+  }
+
+  // Group by domain
+  const DOMAIN_EMOJI = { '自媒体':'🎙️', '创业':'🚀', '课程':'🎓', '咨询':'💼', '生活':'🏠' };
+  const groups = {};
+  tasks.forEach(t => {
+    const domain = t.domain || '其他';
+    if (!groups[domain]) groups[domain] = [];
+    groups[domain].push(t);
+  });
+
+  let html = '';
+  for (const [domain, domainTasks] of Object.entries(groups)) {
+    const emoji = DOMAIN_EMOJI[domain] || '📋';
+    const domainId = 'domain_' + domain.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_');
+    const highRiskCount = domainTasks.filter(t=>getRisk(t)==='high').length;
+    const healthLabel = highRiskCount===0?'🟢 健康':highRiskCount===1?'🟡 一般':'🔴 需关注';
+
+    // Calculate domain progress: completed subtasks / total subtasks
+    let domainCompleted=0, domainTotal=0;
+    domainTasks.forEach(t => {
+      if (t.subtasks) {
+        t.subtasks.forEach(s => { domainTotal++; if (s.completed) domainCompleted++; });
+      }
+    });
+    const domainProgress = domainTotal>0?Math.round(domainCompleted/domainTotal*100):0;
+
+    // Build task cards HTML
+    const taskCardsHTML = domainTasks.map((t,i) => {
+      const status = getStatus(t);
+      const progress = getProgress(t);
+      const color = t.projectColor||PROJECT_COLORS[i%PROJECT_COLORS.length];
+      const deadline = PROJECT_DEADLINES[t.id]||'2026-08-01';
+      const risk = getRisk(t);
+      const riskLabel = {high:'高风险',medium:'中风险',low:'低风险'}[risk];
+      const riskDotColor = {high:'var(--destructive)',medium:'var(--warning)',low:'var(--success)'}[risk];
+      const statusBadge = status==='in_progress'
+        ? '<span class="card-badge badge-progress"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>进行中</span>'
+        : status==='completed'
+          ? '<span class="card-badge badge-done"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>已完成</span>'
+          : '<span class="card-badge badge-notstarted"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 12h6"/></svg>未开始</span>';
+      const pendingCount = t.subtasks.filter(s=>!s.completed).length;
+      return '<div class="project-card" onclick="event.stopPropagation();showTaskDetail(\''+t.id+'\')" style="cursor:pointer;animation:fadeInUp 0.3s ease '+(i*0.06)+'s both;">'+
+        '<div class="color-bar" style="background:'+color+'"></div>'+
+        '<div class="card-inner">'+
+          '<div class="card-title-row">'+
+            '<span class="card-title text-truncate">'+t.title+'</span>'+
+            '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'+
+              statusBadge+
+              '<button onclick="event.stopPropagation();completeTask(\''+t.id+'\')" title="标记完成" style="width:28px;height:28px;border-radius:6px;border:1px solid #D1FAE5;background:#D1FAE5;color:#10B981;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;" onmouseover="this.style.background=\'#10B981\';this.style.color=\'white\'" onmouseout="this.style.background=\'#D1FAE5\';this.style.color=\'#10B981\'">✓</button>'+
+              '<button onclick="event.stopPropagation();editTask(\''+t.id+'\')" title="编辑" style="width:28px;height:28px;border-radius:6px;border:1px solid #EDE9FE;background:#EDE9FE;color:#8B5CF6;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;" onmouseover="this.style.background=\'#8B5CF6\';this.style.color=\'white\'" onmouseout="this.style.background=\'#EDE9FE\';this.style.color=\'#8B5CF6\'">✏</button>'+
+              '<button onclick="event.stopPropagation();deleteTask(\''+t.id+'\')" title="删除" style="width:28px;height:28px;border-radius:6px;border:1px solid #FEE2E2;background:#FEE2E2;color:#EF4444;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;line-height:1;" onmouseover="this.style.background=\'#EF4444\';this.style.color=\'white\'" onmouseout="this.style.background=\'#FEE2E2\';this.style.color=\'#EF4444\'">🗑</button>'+
+            '</div>'+
+          '</div>'+
+          '<div class="progress-section">'+
+            '<div class="progress-label"><span>进度</span><span>'+progress+'%</span></div>'+
+            '<div class="progress-bar"><div class="progress-fill" style="width:'+progress+'%;background:'+color+'"></div></div>'+
+          '</div>'+
+          '<div class="card-meta">'+
+            '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>'+formatShortDate(deadline)+' 截止</span>'+
+            '<span><span class="risk-dot" style="background:'+riskDotColor+'"></span>'+riskLabel+'</span>'+
+            '<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>'+pendingCount+'/'+t.subtasks.length+' 待办</span>'+
+          '</div>'+
+          '<div class="card-next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" x2="19" y1="12" y2="12"/><polyline points="12 5 19 12 12 19"/></svg><span class="text-truncate">下一步：'+getNextAction(t)+'</span></div>'+
+        '</div></div>';
+    }).join('');
+
+    html += '<div class="domain-card" id="'+domainId+'_card" style="background:rgba(255,255,255,0.6);backdrop-filter:blur(20px);border:1px solid rgba(139,92,246,0.15);border-radius:12px;box-shadow:0 4px 20px rgba(139,92,246,0.1);margin-bottom:12px;padding:16px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;" onclick="toggleDomainCard(\''+domainId+'\')" onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 6px 24px rgba(139,92,246,0.15)\'" onmouseout="this.style.transform=\'translateY(0)\';this.style.boxShadow=\'0 4px 20px rgba(139,92,246,0.1)\'">'+
+      '<div style="display:flex;align-items:flex-start;justify-content:space-between;">'+
+        '<div style="font-size:16px;font-weight:700;">'+emoji+' '+domain+'</div>'+
+        '<div style="text-align:right;">'+
+          '<div style="font-size:12px;color:#6B7280;">'+domainTasks.length+' 个项目</div>'+
+          '<div style="font-size:12px;color:#6B7280;margin-top:2px;">'+healthLabel+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="margin-top:12px;">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#6B7280;margin-bottom:4px;">'+
+          '<span>阶段目标进度</span><span>'+domainProgress+'%</span>'+
+        '</div>'+
+        '<div style="height:6px;border-radius:3px;background:rgba(0,0,0,0.06);overflow:hidden;">'+
+          '<div style="height:100%;border-radius:3px;background:#8B5CF6;width:'+domainProgress+'%;transition:width 0.6s ease;"></div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;align-items:center;justify-content:flex-end;margin-top:10px;font-size:11px;color:#9CA3AF;">'+
+        '<span id="'+domainId+'_label">▼ 点击展开</span>'+
+      '</div>'+
+      '<div id="'+domainId+'_body" style="display:none;padding-top:12px;border-top:1px solid rgba(139,92,246,0.1);margin-top:12px;">'+
+        (domainTasks.length===0?'<div style="text-align:center;padding:16px;color:#9CA3AF;font-size:13px;">暂无任务</div>':taskCardsHTML)+
+      '</div>'+
+    '</div>';
+  }
+
+  el.innerHTML = html;
+}
+
+/* ===== TASK ACTIONS ===== */
+
+function completeTask(taskId) {
+  const task = tasks.find(t=>t.id===taskId);
+  if (!task) return;
+  if (!confirm('确认将「'+task.title+'」标记为已完成吗？')) return;
+  task.subtasks.forEach(s => s.completed = true);
+  task.completed = true;
+  task.stage = 'completed';
+  saveAllData();
+  refreshAllViews();
+  showToast('✅ 已标记为完成');
+}
+
+function deleteTask(taskId) {
+  const task = tasks.find(t=>t.id===taskId);
+  if (!task) return;
+  if (!confirm('确定要删除「'+task.title+'」吗？此操作不可撤销。')) return;
+  const idx = tasks.indexOf(task);
+  if (idx>=0) tasks.splice(idx,1);
+  saveAllData();
+  refreshAllViews();
+  showToast('已删除 '+task.title);
+}
+
+function editTask(taskId) {
+  const task = tasks.find(t=>t.id===taskId);
+  if (!task) return;
+
+  const deadline = PROJECT_DEADLINES[task.id]||'2026-08-01';
+  const risk = getRisk(task);
+  const priority = task.subtasks&&task.subtasks.length>0?task.subtasks[0].priority:'P2';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:350;background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;';
+  overlay.onclick = function(e) { if (e.target===overlay) overlay.remove(); };
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:white;border-radius:16px;width:90%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,0.15);animation:modalIn 0.2s ease;';
+  content.onclick = function(e) { e.stopPropagation(); };
+
+  content.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #E5E7EB;">'+
+    '<h3 style="font-size:16px;font-weight:700;">✏️ 编辑项目</h3>'+
+    '<button style="width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;color:#6B7280;" onclick="this.closest(\'[style*=fixed]\').remove()">✕</button>'+
+    '</div>'+
+    '<div style="padding:16px 20px;display:flex;flex-direction:column;gap:14px;">'+
+      '<div><label style="font-size:12px;color:#6B7280;display:block;margin-bottom:4px;">项目名称</label><input id="editTitle" value="'+task.title+'" style="width:100%;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;" onfocus="this.style.borderColor=\'#8B5CF6\'" onblur="this.style.borderColor=\'#E5E7EB\'"></div>'+
+      '<div><label style="font-size:12px;color:#6B7280;display:block;margin-bottom:4px;">截止日期</label><input type="date" id="editDeadline" value="'+deadline+'" style="width:100%;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;" onfocus="this.style.borderColor=\'#8B5CF6\'" onblur="this.style.borderColor=\'#E5E7EB\'"></div>'+
+      '<div><label style="font-size:12px;color:#6B7280;display:block;margin-bottom:4px;">优先级</label><select id="editPriority" style="width:100%;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;">'+
+        ['P0','P1','P2','P3'].map(p=>'<option value="'+p+'"'+(p===priority?' selected':'')+'>'+p+'</option>').join('')+
+      '</select></div>'+
+      '<div><label style="font-size:12px;color:#6B7280;display:block;margin-bottom:4px;">风险等级</label><select id="editRisk" style="width:100%;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;">'+
+        ['低','中','高'].map(r=>'<option value="'+r+'"'+(r===risk?' selected':'')+'>'+r+'</option>').join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid #E5E7EB;">'+
+      '<button onclick="this.closest(\'[style*=fixed]\').remove();" style="padding:8px 18px;border-radius:8px;border:1px solid #D1D5DB;background:white;font-size:13px;cursor:pointer;color:#6B7280;font-family:var(--font-sans);">取消</button>'+
+      '<button onclick="saveEditTask(\''+taskId+'\',this.closest(\'[style*=fixed]\'))" style="padding:8px 18px;border-radius:8px;border:none;background:#8B5CF6;color:white;font-size:13px;cursor:pointer;font-family:var(--font-sans);">保存修改</button>'+
+    '</div>';
+
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+}
+
+function saveEditTask(taskId, overlay) {
+  const task = tasks.find(t=>t.id===taskId);
+  if (!task) return;
+  const newTitle = document.getElementById('editTitle')?.value;
+  const newDeadline = document.getElementById('editDeadline')?.value;
+  const newPriority = document.getElementById('editPriority')?.value;
+  const newRisk = document.getElementById('editRisk')?.value;
+  if (newTitle) task.title = newTitle;
+  if (newDeadline) PROJECT_DEADLINES[taskId] = newDeadline;
+  if (newPriority) {
+    task.subtasks.forEach(s => { if (!s.completed) s.priority = newPriority; });
+  }
+  if (newRisk) {
+    task.subtasks.forEach(s => { if (!s.completed) s.riskLevel = newRisk; });
+  }
+  saveAllData();
+  refreshAllViews();
+  if (overlay) overlay.remove();
+  showToast('✅ 已更新项目信息');
+}
+
+function saveAllData() {
+  // Save only user-generated tasks (non-seed)
+  const userTasks = tasks.filter(t => !SEED_TASK_IDS.includes(t.id));
+  try { localStorage.setItem('summerUserTasks', JSON.stringify(userTasks)); } catch(e) {}
+  try { localStorage.setItem('summerDeadlines', JSON.stringify(PROJECT_DEADLINES)); } catch(e) {}
+}
+
+function refreshAllViews() {
+  updateToday();
+  renderProjects();
+  renderCalendar();
+  drawDonut();
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);z-index:400;background:#1F2937;color:white;padding:10px 24px;border-radius:24px;font-size:14px;font-family:var(--font-sans);box-shadow:0 4px 16px rgba(0,0,0,0.15);animation:toastIn 0.3s ease;';
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity 0.3s'; setTimeout(()=>t.remove(),300); },1800);
+}
+
+/* ===== TASK DETAIL MODAL ===== */
+
+function showTaskDetail(taskId) {
+  const task = tasks.find(t=>t.id===taskId);
+  if (!task) return;
+
+  const status = getStatus(task);
+  const progress = getProgress(task);
+  const risk = getRisk(task);
+  const deadline = PROJECT_DEADLINES[task.id]||'2026-08-01';
+  const statusLabel = status==='completed'?'已完成':status==='in_progress'?'进行中':'未开始';
+  const statusEmoji = status==='completed'?'✅':status==='in_progress'?'🔄':'⏳';
+  const riskLabel = risk==='high'?'🔴 高风险':risk==='medium'?'🟡 中风险':'🟢 低风险';
+  const priority = task.subtasks && task.subtasks.length>0 ? task.subtasks[0].priority : 'P2';
+  const progressColor = {P0:'#EF4444',P1:'#F59E0B',P2:'#3B82F6',P3:'#10B981'}[priority]||'#8B5CF6';
+  const nextPending = task.subtasks ? task.subtasks.find(s=>!s.completed) : null;
+  const nextAction = nextPending ? nextPending.title : '全部完成 ✨';
+
+  // Build subtask list HTML
+  const subtaskHTML = task.subtasks && task.subtasks.length>0
+    ? task.subtasks.map(s => {
+        const priColor = {P0:'#EF4444',P1:'#F59E0B',P2:'#3B82F6',P3:'#10B981'}[s.priority]||'#9CA3AF';
+        const checked = s.completed ? '☑' : '☐';
+        const style = s.completed ? 'color:#9CA3AF;text-decoration:line-through;' : '';
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #F3F4F6;font-size:13px;">'+
+          '<span style="font-size:16px;flex-shrink:0;">'+checked+'</span>'+
+          '<span style="flex:1;min-width:0;'+style+'">'+s.title+'</span>'+
+          '<span style="font-size:10px;padding:1px 6px;border-radius:4px;border:1px solid '+priColor+';color:'+priColor+';flex-shrink:0;">'+s.priority+'</span>'+
+          '<span style="font-size:11px;color:#9CA3AF;flex-shrink:0;">'+formatMins(s.estimatedMinutes)+'</span>'+
+          (s.riskNote&&!s.completed?'<span title="'+s.riskNote+'" style="font-size:12px;flex-shrink:0;">⚠️</span>':'')+
+          '</div>';
+      }).join('')
+    : '<div style="text-align:center;padding:24px;color:#9CA3AF;font-size:13px;">暂无子任务</div>';
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;';
+  overlay.onclick = function(e) { if (e.target===overlay) overlay.remove(); };
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:white;border-radius:16px;width:90%;max-width:520px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.15);animation:modalIn 0.2s ease;';
+  content.onclick = function(e) { e.stopPropagation(); };
+
+  content.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #E5E7EB;flex-shrink:0;">'+
+    '<h3 style="font-size:17px;font-weight:700;">📌 '+task.title+'</h3>'+
+    '<button style="width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;" onclick="this.closest(\'[style*=fixed]\').remove()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'+
+    '</div>'+
+    '<div style="flex:1;overflow-y:auto;padding:20px 24px;">'+
+      '<div style="display:flex;gap:16px;margin-bottom:16px;">'+
+        '<div style="flex:1;text-align:center;padding:10px;background:#F9FAFB;border-radius:8px;">'+
+          '<div style="font-size:11px;color:#6B7280;margin-bottom:2px;">状态</div>'+
+          '<div style="font-size:14px;font-weight:600;">'+statusEmoji+' '+statusLabel+'</div>'+
+        '</div>'+
+        '<div style="flex:1;text-align:center;padding:10px;background:#F9FAFB;border-radius:8px;">'+
+          '<div style="font-size:11px;color:#6B7280;margin-bottom:2px;">截止时间</div>'+
+          '<div style="font-size:14px;font-weight:600;">'+formatShortDate(deadline)+'</div>'+
+        '</div>'+
+        '<div style="flex:1;text-align:center;padding:10px;background:#F9FAFB;border-radius:8px;">'+
+          '<div style="font-size:11px;color:#6B7280;margin-bottom:2px;">风险等级</div>'+
+          '<div style="font-size:14px;font-weight:600;">'+riskLabel+'</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="margin-bottom:16px;">'+
+        '<div style="display:flex;justify-content:space-between;font-size:12px;color:#6B7280;margin-bottom:4px;"><span>进度</span><span>'+progress+'%</span></div>'+
+        '<div style="height:8px;border-radius:4px;background:rgba(0,0,0,0.06);overflow:hidden;">'+
+          '<div style="height:100%;border-radius:4px;background:'+progressColor+';width:'+progress+'%;transition:width 0.6s ease;"></div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="font-size:13px;font-weight:600;color:#1F2937;margin-bottom:8px;">📋 子任务列表</div>'+
+      subtaskHTML+
+      (nextPending?'<div style="margin-top:12px;padding:10px 14px;background:#F5F3FF;border-radius:8px;font-size:13px;">'+
+        '<span style="color:#8B5CF6;font-weight:600;">💡 下一步建议</span> '+
+        '<span style="color:#6B7280;">'+nextAction+'</span>'+
+      '</div>':'')+
+    '</div>'+
+    '<div style="padding:12px 24px;border-top:1px solid #E5E7EB;flex-shrink:0;display:flex;justify-content:flex-end;">'+
+      '<button onclick="openChatForTask(\''+task.title+'\');this.closest(\'[style*=fixed]\').remove();" style="padding:8px 20px;border-radius:8px;border:none;background:#8B5CF6;color:white;font-size:13px;cursor:pointer;font-family:var(--font-sans);">💬 进入对话</button>'+
+    '</div>';
+
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+
+  // ESC to close
+  const escHandler = function(e) { if (e.key==='Escape') { overlay.remove(); document.removeEventListener('keydown',escHandler); } };
+  document.addEventListener('keydown', escHandler);
+}
+
+function openChatForTask(taskTitle) {
+  const input = document.getElementById('chatInput');
+  if (input) {
+    input.value = '聊一下 '+taskTitle;
+    input.focus();
+    updateChatInputs();
+  }
+}
+
+/* ===== PC TAB SWITCH ===== */
+
+function toggleDomainCard(domainId) {
+  const body = document.getElementById(domainId+'_body');
+  const label = document.getElementById(domainId+'_label');
+  if (!body || !label) return;
+  if (body.style.display==='none' || body.style.display==='') {
+    body.style.display = 'block';
+    label.textContent = '▲ 点击收起';
+  } else {
+    body.style.display = 'none';
+    label.textContent = '▼ 点击展开';
+  }
+}
+
+function switchPCTab(tab) {
+  currentPCTab = tab;
+  document.getElementById('tabProjects').classList.toggle('active', tab==='projects');
+  document.getElementById('tabCalendar').classList.toggle('active', tab==='calendar');
+  document.getElementById('projectsView').style.display = tab==='projects'?'block':'none';
+  document.getElementById('calendarView').style.display = tab==='calendar'?'flex':'none';
+  if (tab==='calendar') renderCalendar();
+}
+
+function switchToCalendar() {
+  switchPCTab('calendar');
+  document.getElementById('pcPanel').scrollIntoView({behavior:'smooth'});
+}
+
+/* ===== CALENDAR ===== */
+
+function setCalendarView(view) {
+  calendarView = view;
+  document.getElementById('calWeekBtn').classList.toggle('active', view==='week');
+  document.getElementById('calMonthBtn').classList.toggle('active', view==='month');
+  document.getElementById('weekCalendar').style.display = view==='week'?'block':'none';
+  document.getElementById('monthCalendar').style.display = view==='month'?'block':'none';
+  renderCalendar();
+}
+
+function calNavigate(dir) {
+  if (calendarView==='week') calWeekOffset += dir;
+  else calMonthOffset += dir;
+  renderCalendar();
+}
+
+function renderCalendar() {
+  if (currentPCTab!=='calendar') return;
+  renderWeekCalendar();
+  renderMonthCalendar();
+  renderCalLegend();
+}
+
+function renderWeekCalendar() {
+  const el = document.getElementById('weekCalendar');
+  const today = new Date();
+  const start = new Date(today);
+  start.setDate(start.getDate()+calWeekOffset*7);
+  const days = [];
+  for (let i=0; i<7; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate()+i);
+    days.push({ date: padDate(d), label: '周'+WEEKDAYS_SHORT[(d.getDay()+6)%7], dateObj: d });
+  }
+
+  const todayStr = padDate(today);
+  const scheduleMap = {};
+  MOCK_CALENDAR_SCHEDULE.forEach(d => { scheduleMap[d.date]=d; });
+
+  document.getElementById('calNavLabel').textContent = formatShortDate(days[0].date)+' - '+formatShortDate(days[6].date);
+
+  let html = '<div class="week-grid">';
+
+  // Headers
+  days.forEach(d => {
+    const isToday = d.date===todayStr;
+    html += '<div class="week-day-header'+(isToday?' today':'')+'">'+
+      '<span class="wd-label">'+d.label+'</span>'+
+      '<span class="wd-date">'+d.dateObj.getDate()+'</span>'+
+      (isToday?'<span class="wd-tag">今</span>':'')+
+      '</div>';
+  });
+
+  // Columns
+  days.forEach(d => {
+    const isToday = d.date===todayStr;
+    const daySchedule = scheduleMap[d.date];
+    html += '<div class="week-day-col'+(isToday?' today':'')+'">';
+    if (daySchedule && daySchedule.items.length>0) {
+      daySchedule.items.forEach(item => {
+        const color = getDomainColor(item.parentTaskId);
+        html += '<div class="week-task'+(item.completed?' done':'')+'" data-subtask-id="'+item.subtaskId+'" data-parent-id="'+item.parentTaskId+'" style="background:'+color+'20;border-left:2px solid '+color+'">'+
+          '<p class="wt-title'+(item.completed?' done':'')+'">'+item.title+'</p>'+
+          '<p class="wt-time">'+(Math.round(item.estimatedMinutes/60*10)/10)+'h</p></div>';
+      });
+    }
+    if (!daySchedule || !daySchedule.items.length) {
+      html += '<div style="flex:1;display:flex;align-items:center;justify-content:center;font-size:9px;color:rgba(0,0,0,0.15);">空闲</div>';
+    }
+    html += '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderMonthCalendar() {
+  const el = document.getElementById('monthCalendar');
+  const today = new Date();
+  const base = new Date(today.getFullYear(), today.getMonth()+calMonthOffset, 1);
+  const first = new Date(base.getFullYear(), base.getMonth(), 1);
+  const startDow = (first.getDay()+6)%7;
+  const start = new Date(first);
+  start.setDate(start.getDate()-startDow);
+
+  const todayStr = padDate(today);
+  const scheduleMap = {};
+  MOCK_CALENDAR_SCHEDULE.forEach(d => { scheduleMap[d.date]=d; });
+
+  let html = '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;padding:12px;">';
+  WEEKDAYS_SHORT.forEach(d => { html += '<div class="month-dow">'+d+'</div>'; });
+
+  for (let i=0; i<42; i++) {
+    const d = new Date(start);
+    d.setDate(d.getDate()+i);
+    const dateStr = padDate(d);
+    const isCurrentMonth = d.getMonth()===base.getMonth();
+    const isToday = dateStr===todayStr;
+    const daySchedule = scheduleMap[dateStr];
+    const items = daySchedule?daySchedule.items:[];
+    html += '<div class="month-day'+(isCurrentMonth?'':' other-month')+(isToday?' today':'')+'" data-date="'+dateStr+'">'+
+      '<span class="md-date">'+d.getDate()+'</span>';
+    if (items.length>0) {
+      html += '<div class="md-dots">';
+      items.slice(0,3).forEach(item => {
+        html += '<span class="md-dot" style="background:'+getDomainColor(item.parentTaskId)+'"></span>';
+      });
+      if (items.length>3) html += '<span style="font-size:8px;color:var(--muted-foreground);">+'+String(items.length-3)+'</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderCalLegend() {
+  const el = document.getElementById('calLegend');
+  // Show unique domains from tasks
+  const domains = [...new Set(tasks.map(t=>t.domain||'其他'))];
+  el.innerHTML = domains.map(domain => {
+    const color = DOMAIN_COLORS[domain] || '#8B5CF6';
+    return '<span class="cal-legend-item"><span class="cal-legend-dot" style="background:'+color+'"></span>'+domain+'</span>';
+  }).join('');
+}
+
+/* ===== WEEK TASK TOOLTIP ===== */
+
+let tooltipEl = null;
+let tooltipTimeout = null;
+
+function setupWeekTaskTooltips() {
+  if (tooltipEl) return;
+  tooltipEl = document.createElement('div');
+  tooltipEl.className = 'week-task-tooltip';
+  document.body.appendChild(tooltipEl);
+
+  document.addEventListener('mouseover', function(e) {
+    const task = e.target.closest('.week-task');
+    if (!task) return;
+    const subtaskId = task.dataset.subtaskId;
+    const parentId = task.dataset.parentId;
+    if (!subtaskId) return;
+
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      // Find the subtask in MOCK_CALENDAR_SCHEDULE
+      let subtaskTitle = task.querySelector('.wt-title')?.textContent || '';
+      let subProjectTitle = '';
+      let projectName = '';
+      let deadline = '';
+
+      // Find parent task in tasks array
+      const parentTask = tasks.find(t=>t.id===parentId);
+      if (parentTask) {
+        subProjectTitle = parentTask.title;
+        const domain = parentTask.domain||'其他';
+        const DOMAIN_EMOJI = { '自媒体':'🎙️', '创业':'🚀', '课程':'🎓', '咨询':'💼', '生活':'🏠' };
+        projectName = (DOMAIN_EMOJI[domain]||'📋')+' '+domain;
+        deadline = PROJECT_DEADLINES[parentId]||'';
+      }
+
+      tooltipEl.innerHTML = '<div class="tt-title">'+subtaskTitle+'</div>'+
+        (subProjectTitle?'<div class="tt-row">所属项目：'+subProjectTitle+'</div>':'')+
+        (projectName?'<div class="tt-row">所属领域：'+projectName+'</div>':'')+
+        (deadline?'<div class="tt-row">截止：'+formatShortDate(deadline)+'</div>':'');
+
+      // Position near mouse
+      const rect = task.getBoundingClientRect();
+      let left = rect.right + 10;
+      let top = rect.top;
+      if (left + 260 > window.innerWidth) left = rect.left - 270;
+      if (top + 120 > window.innerHeight) top = window.innerHeight - 130;
+      tooltipEl.style.left = left+'px';
+      tooltipEl.style.top = top+'px';
+      tooltipEl.classList.add('active');
+    }, 300);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    const task = e.target.closest('.week-task');
+    if (!task) return;
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      tooltipEl.classList.remove('active');
+    }, 200);
+  });
+
+  // Month view tooltip
+  document.addEventListener('mouseover', function(e) {
+    const monthDay = e.target.closest('.month-day');
+    if (!monthDay) return;
+    const dateStr = monthDay.dataset.date;
+    if (!dateStr) return;
+    const daySchedule = MOCK_CALENDAR_SCHEDULE.find(d=>d.date===dateStr);
+    if (!daySchedule || !daySchedule.items.length) return;
+
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      const sorted = [...daySchedule.items].sort((a,b)=>{
+        const order = {P0:0,P1:1,P2:2,P3:3};
+        return (order[a.priority]||9)-(order[b.priority]||9);
+      });
+      const maxShow = 5;
+      let html = '';
+      sorted.slice(0,maxShow).forEach(item => {
+        const task = tasks.find(t=>t.id===item.parentTaskId);
+        const domain = task?task.domain:'其他';
+        html += '<div style="padding:6px 0;border-bottom:1px solid #F3F4F6;">'+
+          '<div style="font-size:13px;color:#1F2937;font-weight:500;">'+item.title+'</div>'+
+          '<div style="font-size:11px;color:#6B7280;">'+domain+'</div>'+
+          '</div>';
+      });
+      if (sorted.length>maxShow) {
+        html += '<div style="font-size:12px;color:#9CA3AF;padding-top:6px;">...等 '+sorted.length+' 项任务</div>';
+      }
+      tooltipEl.innerHTML = html;
+      tooltipEl.style.maxHeight = '300px';
+      tooltipEl.style.overflowY = 'auto';
+
+      const rect = monthDay.getBoundingClientRect();
+      let left = rect.right + 8;
+      let top = rect.top;
+      if (left + 280 > window.innerWidth) left = rect.left - 290;
+      if (top + 200 > window.innerHeight) top = window.innerHeight - 210;
+      tooltipEl.style.left = left+'px';
+      tooltipEl.style.top = top+'px';
+      tooltipEl.classList.add('active');
+    }, 300);
+  });
+
+  document.addEventListener('mouseout', function(e) {
+    const monthDay = e.target.closest('.month-day');
+    if (!monthDay) return;
+    clearTimeout(tooltipTimeout);
+    tooltipTimeout = setTimeout(() => {
+      tooltipEl.classList.remove('active');
+    }, 200);
+  });
+}
+
+/* ===== MOBILE ===== */
+
+function openMobileChat() {
+  document.getElementById('mobileChatOverlay').classList.add('active');
+  document.getElementById('mobileChatSheet').classList.add('active');
+  renderMobileChatMessages();
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMobileChat() {
+  document.getElementById('mobileChatOverlay').classList.remove('active');
+  document.getElementById('mobileChatSheet').classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+/* ===== PROFILE ===== */
+
+const defaultProfile = {
+  nickname: 'Summer',
+  occupation: 'AI创业者 / 自媒体人 / 产品顾问',
+  careerStage: '成长期',
+  workHours: '10+h',
+  jobTags: ['创业者', '自媒体人', '产品顾问', '课程创作者', '分享嘉宾'],
+  mbti: { E: true, I: false, S: true, N: false, T: true, F: false, J: true, P: false },
+  energyCurve: '夜猫子',
+  stressRelief: ['运动', '美食', '独处'],
+  monthlyGoal: '完成AI课程上线并找到种子轮融资',
+  values: ['事业成就', '时间自由', '创作表达'],
+  riskTolerance: '稳健',
+  restDays: ['周六', '周日'],
+  doNotDisturb: true
+};
+
+function getProfile() {
+  try {
+    const saved = localStorage.getItem('summerProfile');
+    if (saved) return JSON.parse(saved);
+  } catch(e) {}
+  return { ...defaultProfile, mbti: { ...defaultProfile.mbti }, jobTags: [...defaultProfile.jobTags], stressRelief: [...defaultProfile.stressRelief], values: [...defaultProfile.values], restDays: [...defaultProfile.restDays] };
+}
+
+function saveProfile(p) {
+  try { localStorage.setItem('summerProfile', JSON.stringify(p)); } catch(e) {}
+}
+
+function openProfile() {
+  const p = getProfile();
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.35);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;';
+  overlay.onclick = function(e) { if (e.target===overlay) overlay.remove(); };
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:white;border-radius:16px;width:90%;max-width:580px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,0.2);animation:modalIn 0.2s ease;';
+  content.onclick = function(e) { e.stopPropagation(); };
+
+  content.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid #E5E7EB;flex-shrink:0;">
+      <h3 style="font-size:18px;font-weight:700;">🧑‍💻 我的个人画像</h3>
+      <button style="width:32px;height:32px;border-radius:8px;border:none;background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#6B7280;" onclick="this.closest('[style*=fixed]').remove()"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 24px;" id="profileBody">
+      ${renderProfileContent(p)}
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-top:1px solid #E5E7EB;flex-shrink:0;">
+      <button onclick="resetDemoData();" style="padding:8px 14px;border-radius:8px;border:1px solid #FEE2E2;background:#FEF2F2;font-size:12px;cursor:pointer;color:#EF4444;font-family:var(--font-sans);">🔄 重置演示数据</button>
+      <div style="display:flex;gap:8px;">
+        <button onclick="this.closest('[style*=fixed]').remove();" style="padding:8px 18px;border-radius:8px;border:1px solid #D1D5DB;background:white;font-size:13px;cursor:pointer;color:#6B7280;font-family:var(--font-sans);">取消</button>
+        <button onclick="saveProfileAndClose(this)" style="padding:8px 18px;border-radius:8px;border:none;background:#8B5CF6;color:white;font-size:13px;cursor:pointer;font-family:var(--font-sans);">保存修改</button>
+      </div>
+    </div>`;
+
+  overlay.appendChild(content);
+  document.body.appendChild(overlay);
+  closeUserDropdown();
+}
+
+function renderProfileContent(p) {
+  const mbti = p.mbti||{};
+  const mbtiDone = mbti.E!==mbti.I && mbti.S!==mbti.N && mbti.T!==mbti.F && mbti.J!==mbti.P;
+  const mbtiResult = mbtiDone ? (mbti.E?'E':'I')+(mbti.S?'S':'N')+(mbti.T?'T':'F')+(mbti.J?'J':'P') : '请完成四个维度的选择';
+  const tagHtml = (p.jobTags||[]).map((t,i)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#F3F0FF;color:#8B5CF6;border-radius:16px;padding:4px 12px;font-size:12px;margin:0 4px 4px 0;">${t}<span style="cursor:pointer;font-size:14px;line-height:1;opacity:0.6;" onclick="removeJobTag(${i})">×</span></span>`).join('');
+
+  // Section title helper
+  const sectionTitle = (icon, title) => `<div style="font-weight:600;font-size:14px;color:#1F2937;border-left:3px solid #8B5CF6;padding-left:8px;margin-bottom:4px;">${icon} ${title}</div>`;
+
+  return `
+    <div style="display:flex;flex-direction:column;gap:18px;font-size:14px;">
+
+      ${sectionTitle('👤','基础信息')}
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">昵称</span>
+        <input type="text" id="pf-nickname" value="${p.nickname}" onblur="saveInputField('nickname',this.value)" style="flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;" onfocus="this.style.borderColor='#A78BFA'" onblur="this.style.borderColor='#E5E7EB';saveInputField('nickname',this.value)">
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">职业身份</span>
+        <input type="text" id="pf-occupation" value="${p.occupation}" onblur="saveInputField('occupation',this.value)" style="flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;" onfocus="this.style.borderColor='#A78BFA'" onblur="this.style.borderColor='#E5E7EB';saveInputField('occupation',this.value)">
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">事业阶段</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${['起步期','成长期','稳定期'].map(o=>pfBtn(o,p.careerStage,'careerStage')).join('')}</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">日均工作时长</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${['4-6h','6-8h','8-10h','10+h'].map(o=>pfBtn(o,p.workHours,'workHours')).join('')}</div>
+      </div>
+
+      <div style="display:flex;align-items:flex-start;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;padding-top:8px;">身份标签</span>
+        <div style="flex:1;min-width:0;">
+          <div id="pf-tags" style="margin-bottom:6px;">${tagHtml}</div>
+          <div style="display:flex;gap:6px;">
+            <input type="text" id="pf-tag-input" placeholder="输入新标签" style="flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:6px 10px;font-size:12px;font-family:var(--font-sans);outline:none;" onfocus="this.style.borderColor='#A78BFA'" onblur="this.style.borderColor='#E5E7EB'" onkeydown="if(event.key==='Enter')addJobTag()">
+            <button onclick="addJobTag()" style="padding:6px 14px;border-radius:8px;border:none;background:#A78BFA;color:white;font-size:12px;cursor:pointer;font-family:var(--font-sans);">添加</button>
+          </div>
+        </div>
+      </div>
+
+      ${sectionTitle('🧠','性格画像')}
+
+      <div style="background:#F9FAFB;border-radius:10px;padding:14px;">
+        <div style="background:#F3F0FF;border-radius:12px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:13px;color:#6B7280;">MBTI 人格</span>
+          <span style="font-weight:700;font-size:${mbtiDone?'20px':'13px'};color:${mbtiDone?'#8B5CF6':'#9CA3AF'};" id="pf-mbti-result">${mbtiResult}</span>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${['E/I','S/N','T/F','J/P'].map((pair,i)=>{
+            const [a,b] = pair.split('/');
+            const keyA = Object.keys(p.mbti)[i*2];
+            const keyB = Object.keys(p.mbti)[i*2+1];
+            const valA = p.mbti[keyA];
+            const valB = p.mbti[keyB];
+            return `<div style="display:flex;gap:2px;background:#E5E7EB;border-radius:8px;padding:2px;flex:1;min-width:110px;">
+              ${pfMbtiBtn(a,keyA,keyB,valA)}${pfMbtiBtn(b,keyB,keyA,valB)}
+            </div>`;
+          }).join('')}
+        </div>
+      </div>
+
+      ${sectionTitle('⚡','工作节奏偏好')}
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">能量曲线</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${pfBtn('🌅 早起型',p.energyCurve,'energyCurve')}${pfBtn('🌙 夜猫子',p.energyCurve,'energyCurve')}${pfBtn('🔄 灵活型',p.energyCurve,'energyCurve')}</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">减压方式</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${pfMultiBtn('🏃 运动',(p.stressRelief||[]),'stressRelief')}${pfMultiBtn('🧘 冥想',(p.stressRelief||[]),'stressRelief')}${pfMultiBtn('👥 社交',(p.stressRelief||[]),'stressRelief')}${pfMultiBtn('🌿 独处',(p.stressRelief||[]),'stressRelief')}</div>
+      </div>
+
+      ${sectionTitle('🎯','目标与价值观')}
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">本月核心目标</span>
+        <input type="text" id="pf-monthlyGoal" value="${p.monthlyGoal||''}" onblur="saveInputField('monthlyGoal',this.value)" style="flex:1;border:1px solid #E5E7EB;border-radius:8px;padding:8px 12px;font-size:13px;font-family:var(--font-sans);outline:none;" onfocus="this.style.borderColor='#A78BFA'" onblur="this.style.borderColor='#E5E7EB';saveInputField('monthlyGoal',this.value)">
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">最在意的维度</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${pfMultiBtn('🏆 事业成就',(p.values||[]),'values',3)}${pfMultiBtn('💪 身心健康',(p.values||[]),'values',3)}${pfMultiBtn('⏳ 时间自由',(p.values||[]),'values',3)}${pfMultiBtn('💰 财务增长',(p.values||[]),'values',3)}${pfMultiBtn('🎨 创作表达',(p.values||[]),'values',3)}${pfMultiBtn('🤝 人际关系',(p.values||[]),'values',3)}</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">风险容忍度</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${pfBtn('🛡️ 保守',p.riskTolerance,'riskTolerance')}${pfBtn('⚖️ 稳健',p.riskTolerance,'riskTolerance')}${pfBtn('🚀 激进',p.riskTolerance,'riskTolerance')}</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">休息日</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">${['周一','周二','周三','周四','周五','周六','周日'].map(o=>pfMultiBtn(o,(p.restDays||[]),'restDays')).join('')}</div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:12px;">
+        <span style="width:110px;text-align:right;color:#6B7280;font-size:13px;flex-shrink:0;">休息日免打扰</span>
+        <div style="position:relative;width:44px;height:24px;border-radius:12px;cursor:pointer;transition:background 0.2s;background:${p.doNotDisturb?'#A78BFA':'#D1D5DB'};" onclick="toggleDoNotDisturb()">
+          <div style="position:absolute;top:2px;left:${p.doNotDisturb?'22px':'2px'};width:20px;height:20px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,0.15);transition:left 0.2s;" id="pf-toggle-knob"></div>
+        </div>
+      </div>
+
+    </div>`;
+}
+
+// Helper: single-select button (uses #A78BFA for selected)
+function pfBtn(label, current, field) {
+  const sel = current===label || current===label.replace(/^[^\s]+\s/,'');
+  return `<button style="border-radius:20px;padding:6px 20px;font-size:13px;border:1px solid ${sel?'#A78BFA':'#E5E7EB'};background:${sel?'#A78BFA':'#F3F4F6'};color:${sel?'white':'#6B7280'};cursor:pointer;font-family:var(--font-sans);transition:all 0.15s;" onclick="setProfileField('${field}','${label.replace(/^[^\s]+\s/,'')}')">${label}</button>`;
+}
+
+// Helper: multi-select button (uses #A78BFA for selected)
+function pfMultiBtn(label, arr, field, max) {
+  const cleanLabel = label.replace(/^[^\s]+\s/,'');
+  const sel = arr.includes(cleanLabel);
+  const disabled = max && !sel && arr.length>=max;
+  return `<button style="border-radius:20px;padding:6px 20px;font-size:13px;border:1px solid ${sel?'#A78BFA':'#E5E7EB'};background:${sel?'#A78BFA':'#F3F4F6'};color:${sel?'white':'#6B7280'};cursor:${disabled?'not-allowed':'pointer'};opacity:${disabled?'0.5':'1'};font-family:var(--font-sans);transition:all 0.15s;" onclick="toggleMultiField('${field}','${cleanLabel}',${max||0})">${label}</button>`;
+}
+
+// Helper: MBTI button
+function pfMbtiBtn(label, keyA, keyB, selected) {
+  return `<button style="flex:1;padding:4px 0;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:${selected?'600':'400'};background:${selected?'white':'transparent'};color:${selected?'#A78BFA':'#9CA3AF'};box-shadow:${selected?'0 1px 2px rgba(0,0,0,0.08)':'none'};font-family:var(--font-sans);transition:all 0.15s;" onclick="toggleMBTI('${keyA}','${keyB}')">${label}</button>`;
+}
+
+// Profile handlers
+function setProfileField(field, value) {
+  const p = getProfile();
+  p[field] = value;
+  saveProfile(p);
+  refreshProfileModal();
+}
+
+function toggleMultiField(field, value, max) {
+  const p = getProfile();
+  const arr = p[field]||[];
+  const idx = arr.indexOf(value);
+  if (idx>=0) { arr.splice(idx,1); }
+  else { if (max && arr.length>=max) return; arr.push(value); }
+  p[field] = arr;
+  saveProfile(p);
+  refreshProfileModal();
+}
+
+function saveInputField(field, value) {
+  const p = getProfile();
+  p[field] = value;
+  saveProfile(p);
+}
+
+function addJobTag() {
+  const input = document.getElementById('pf-tag-input');
+  if (!input) return;
+  const val = input.value.trim();
+  if (!val) return;
+  const p = getProfile();
+  p.jobTags = [...(p.jobTags||[]), val];
+  saveProfile(p);
+  refreshProfileModal();
+}
+
+function removeJobTag(index) {
+  const p = getProfile();
+  p.jobTags = (p.jobTags||[]).filter((_,i)=>i!==index);
+  saveProfile(p);
+  refreshProfileModal();
+}
+
+function toggleDoNotDisturb() {
+  const p = getProfile();
+  p.doNotDisturb = !p.doNotDisturb;
+  saveProfile(p);
+  refreshProfileModal();
+}
+
+function toggleMBTI(keyA, keyB) {
+  const p = getProfile();
+  if (p.mbti[keyA]) { p.mbti[keyA]=false; p.mbti[keyB]=true; }
+  else { p.mbti[keyA]=true; p.mbti[keyB]=false; }
+  saveProfile(p);
+  refreshProfileModal();
+}
+
+function saveProfileAndClose(btn) {
+  showToast('✅ 保存成功');
+  setTimeout(() => { btn.closest('[style*=fixed]').remove(); }, 400);
+}
+
+function resetProfile() {
+  try { localStorage.removeItem('summerProfile'); } catch(e) {}
+}
+
+function resetDemoData() {
+  try { localStorage.removeItem('summerUserTasks'); } catch(e) {}
+  try { localStorage.removeItem('summerDeadlines'); } catch(e) {}
+  tasks = getSeedTasks();
+  refreshAllViews();
+  showToast('✅ 演示数据已重置');
+}
+
+function refreshProfileModal() {
+  const body = document.getElementById('profileBody');
+  if (!body) return;
+  const p = getProfile();
+  body.innerHTML = renderProfileContent(p);
+}
+
+/* ===== INIT ===== */
+document.addEventListener('DOMContentLoaded', init);
+
+// Update chat inputs on typing
+document.addEventListener('input', function(e) {
+  if (e.target.id==='chatInput' || e.target.id==='mobileChatInput') updateChatInputs();
+});
+
+// Close user dropdown when clicking outside
+document.addEventListener('click', function(e) {
+  const area = document.getElementById('navUserArea');
+  if (area && !area.contains(e.target)) {
+    document.getElementById('navUserDropdown').classList.remove('active');
+  }
+});
+
+/* ===== NAVBAR HELPERS ===== */
+function toggleUserDropdown(e) {
+  e.stopPropagation();
+  document.getElementById('navUserDropdown').classList.toggle('active');
+}
+function closeUserDropdown() {
+  document.getElementById('navUserDropdown').classList.remove('active');
+}
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ===== DYNAMIC GREETING ===== */
+function updateChatGreeting() {
+  const h = new Date().getHours();
+  const el = document.getElementById('chatGreeting');
+  if (!el) return;
+  if (h>=5 && h<9) el.textContent = '☀️ 早上好，今天的关键项目是...';
+  else if (h>=9 && h<13) el.textContent = '☕ 中午好，进度如何？';
+  else if (h>=13 && h<18) el.textContent = '🌤 下午好，还有哪些待完成？';
+  else if (h>=18 && h<23) el.textContent = '🌙 晚上好，复盘一下今日进展？';
+  else el.textContent = '🌃 深夜了，注意休息。';
+}
+
+/* ===== VOICE INPUT ===== */
+let isRecording = false;
+let voiceClickCount = 0;
+const voicePhrases = [
+  '我刚接了一个品牌小红书商务合作，下周三需要发布合作笔记',
+  '周六我约了打网球，拍摄改到周日',
+  '黑客松 PRD 文档已经全部写完了',
+  '八月初想和朋友去云南玩 5 天，帮我看看哪个时间段最合适，不能耽误融资和课程交付。',
+  '今天投资人婉拒了我们项目，谈好的企业咨询客户也临时延期，有点想放弃了。',
+  '好，今天先休息，明天继续调整节奏推进。',
+];
+function toggleVoiceInput(e) {
+  e.stopPropagation();
+  const btn = e.currentTarget;
+
+  if (isRecording) {
+    isRecording = false;
+    btn.classList.remove('recording');
+    const targetInput = btn.closest('.chat-input-area').querySelector('textarea');
+    if (targetInput) {
+      targetInput.placeholder = '输入你的任务，我来帮你拆解和排期...';
+      targetInput.value = '';
+    }
+    return;
+  }
+
+  // Start recording
+  isRecording = true;
+  btn.classList.add('recording');
+  const targetInput = btn.closest('.chat-input-area').querySelector('textarea');
+  if (targetInput) {
+    targetInput.placeholder = '🎤 正在聆听...';
+    targetInput.value = '';
+    targetInput.focus();
+  }
+
+  // Simulate voice recognition after 2 seconds
+  setTimeout(() => {
+    if (!isRecording) return;
+    const phrase = voicePhrases[voiceClickCount % voicePhrases.length];
+    voiceClickCount++;
+    const targetInput = btn.closest('.chat-input-area').querySelector('textarea');
+    if (targetInput) {
+      targetInput.value = phrase;
+      targetInput.placeholder = '输入你的任务，我来帮你拆解和排期...';
+      updateChatInputs();
+    }
+    isRecording = false;
+    btn.classList.remove('recording');
+  }, 2000);
+}
+</script>
+
+</body>
+</html>
